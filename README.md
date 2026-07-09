@@ -52,12 +52,12 @@ O código será avaliado de acordo com os seguinte critérios:
 
 Sistema de Gestão de Solicitações de Documentos Acadêmicos
 
-** Contexto **
+**Contexto**
 Uma instituição de ensino deseja automatizar a solicitação de documentos acadêmicos (Histórico Escolar, Atestado de Matrícula, Declaração de Conclusão etc.), abandonando a utilização de documentos impressos.
 Para isso foi solicitado o desenvolvimento de uma API REST para receber e movimentar essas solicitações, com um painel de gerenciamento e dashboard de acompanhamento.
 Cada solicitação recebida deve possuir um fluxo de aprovação e emissão, com responsáveis por etapa.
 
-** Requisitos Funcionais **
+**Requisitos Funcionais**
 _RF01 – Cadastro de Solicitações [POST]_
 Ao criar um novo registro de Solicitação para um Aluno ativo, deve receber as informações:
 
