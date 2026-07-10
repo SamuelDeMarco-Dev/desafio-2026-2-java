@@ -65,11 +65,11 @@ _RF01 – Cadastro de Solicitações [POST]_
 Ao criar um novo registro de Solicitação para um Aluno ativo, deve receber as informações:
 
 * id - int
-* aluno - Aluno (Entidade)
-* curso - Curso (Entidade)
-* tipoDocumento - TipoDocumento (Entidade)
+* aluno.id - Aluno (Entidade)
+* curso.id - Curso (Entidade)
+* tipoDocumento.id - TipoDocumento (Entidade)
 * dataSolicitacao - DateTime
-* status - Status (Entidade)
+* status.id - Status (Entidade)
 * dataAlteracao - DateTime
 * prioridade - Enum (URGENTE, ALTA, NORMAL)
 
@@ -103,6 +103,12 @@ Uma solicitação deve seguir um fluxo de aprovação de acordo com cada repons�
 ABERTA -> EM_ANALISE -> APROVADA -> EMITIDA
 ABERTA -> EM_ANALISE -> REPROVADA
 
+Deve receber as informações:
+
+* solicitacao.id - int
+* status.id - int
+* status.responsavel - int
+
 Não permitir transições inválidas.
 Ao alterar o status de uma solicitação, será necessário informar o código do responsável, que deve ser igual ao responsável pelo status passado.
 Atualizar a dataAlteracao da Solicitação.
@@ -118,6 +124,10 @@ Criar tabelas de auditoria para todas as entidades, registrando todas as movimen
 _RF06 – Dashboard_
 
 Montar dashboard onde seja possível visualizar e analisar os dados do RF03.
+
+_RF07 – Telas Complementares_ (**OPCIONAL**)
+
+Criar telas para realizar as operações da API.
 
 ## ESTRUTURAS PRIMÁRIAS
 Aqui uma sugestão de estrutura parcial para você seguir, melhorias ou correções são bem-vindas e encorajadas.
