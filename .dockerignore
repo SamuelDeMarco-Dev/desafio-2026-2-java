@@ -1,0 +1,27 @@
+# Build local
+target/
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# Variáveis e arquivos sensíveis
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Documentação que não precisa estar na imagem
+README.md
