@@ -1,170 +1,204 @@
-# desafio-2026-2-java
-CORRESPONDENTE AO EDITAL N. 21/UNOESC-R/2025
+# Sistema de Gestão de Solicitações de Documentos Acadêmicos
 
-Desafio Programador I Unoesc
+API REST para cadastro, consulta e movimentação de solicitações de documentos
+acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 
-Este é o nosso desafio para a vaga de programador na Unoesc. Serão testadas as habilidades e qualidade de código ao transformar requisitos limitados em uma aplicação web.
+> **Status:** em desenvolvimento — a infraestrutura base (banco, migrations,
+> Docker e perfis de ambiente) já está pronta. As camadas de domínio e a API
+> REST ainda estão sendo implementadas. Veja o [Roadmap](#roadmap).
 
-**FAÇA O FORK DESTE REPOSITÓRIO E IMPLEMENTE O DESAFIO. O MANTENHA PÚBLICO, POIS QUEREMOS ACOMPANHAR SEUS COMMITS**
+---
 
-_Ao concluir o desafio, lembre de enviar um email para **recrutamentorh.jba@unoesc.edu.br, ti.coord@unoesc.edu.br e ti.dev@unoesc.edu.br**, com seu repositório. Lembre de incluir a documentação para que possamos rodar sua aplicação._
+## Tecnologias
 
-## PONTOS OBRIGATÓRIOS
-* Java (21+)
-* Orientação a Objetos
-* Spring Boot 
-* Spring Data JPA
-* Maven
-* Git
-* REST
-* PostgreSQL ou Mysql
-* Hibernate
-* Documentação
+### Em uso no projeto
 
-## PONTOS DESEJÁVEIS
-* Organização em camadas
-* Tratamento de exceções
-* Thymeleaf ou React
-* Testes unitários
-* Docker
-* OpenAPI/Swagger
+| Tecnologia | Versão | Uso |
+|---|---|---|
+| Java | 21 | Linguagem |
+| Spring Boot | 3.5.16 | Framework base |
+| Spring Web | — | API REST |
+| Spring Data JPA | — | Persistência |
+| Spring Boot Actuator | — | Health check / observabilidade |
+| Spring Boot Validation | — | Validação de dados |
+| PostgreSQL | 17 | Banco de dados (produção/dev) |
+| Flyway | — | Versionamento do banco (migrations) |
+| H2 | — | Banco em memória (testes) |
+| Maven | — | Build e dependências |
+| Docker / Docker Compose | — | Containerização e orquestração |
 
-## PONTOS DIFERENCIAIS
-* Uso de JasperReports para emissão de relatórios.
+### Planejadas (ainda não implementadas)
 
-## AVALIAÇÃO
-O código será avaliado de acordo com os seguinte critérios:
+- Spring Security + JWT (autenticação e autorização)
+- OpenAPI / Swagger (documentação da API)
 
-* Documentação do processo necessário para rodar a aplicação;
-* **Estrutura do projeto;**
-* **Histórico do GIT;**
-* Build e execução da aplicação;
-* Completude das funcionalidades;
-* Qualidade de código (design pattern, manutenibilidade, clareza);
-* Boas práticas de UI;
-* **Sentido e coerência nas respostas aos questionamentos na entrevista de apresentação do desafio realizada pelo candidato.**
- 
-**OBS: Plágios tendem a ser desclassificados. Atenção com o uso excessivo de IA.**
+---
 
-**IMPORTANTE: Estamos buscando desenvolvedores que topam desafios, então mesmo não cumprindo todo os requisitos abaixo, seu esforço será avaliado.**
+## Estrutura do projeto
 
-## DESAFIO 
+```
+desafio-2026-2-java/
+├── src/
+│   ├── main/
+│   │   ├── java/br/com/samuel/documentos_academicos/
+│   │   │   └── DocumentosAcademicosApplication.java   # bootstrap Spring Boot
+│   │   └── resources/
+│   │       ├── application.properties                 # config base
+│   │       ├── application-dev.properties             # perfil dev
+│   │       ├── application-prod.properties            # perfil prod
+│   │       └── db/migrations/                         # migrations Flyway
+│   │           ├── V1__create_initial_schema.sql
+│   │           └── V2__insert_initial_statuses.sql
+│   └── test/
+│       ├── java/.../DocumentosAcademicosApplicationTests.java
+│       └── resources/application-test.properties      # perfil de teste (H2)
+├── Dockerfile                                         # build multi-stage
+├── docker-compose.yml                                 # PostgreSQL + API
+├── .env.example                                       # modelo de variáveis
+├── mvnw / mvnw.cmd                                    # Maven Wrapper
+└── pom.xml
+```
 
-Sistema de Gestão de Solicitações de Documentos Acadêmicos
+---
 
-**Contexto**
+## Modelo de dados
 
-Uma instituição de ensino deseja automatizar a solicitação de documentos acadêmicos (Histórico Escolar, Atestado de Matrícula, Declaração de Conclusão etc.), abandonando a utilização de documentos impressos.
-Para isso foi solicitado o desenvolvimento de uma API REST para receber e movimentar essas solicitações, com um painel de gerenciamento e dashboard de acompanhamento.
-Cada solicitação recebida deve possuir um fluxo de aprovação e emissão, com responsáveis por etapa.
+O schema é versionado pelo Flyway. A migration `V1` cria a estrutura inicial e a
+`V2` popula os status do fluxo.
 
-**Requisitos Funcionais**
+### Tabelas
 
-_RF01 – Cadastro de Solicitações [POST]_
+| Tabela | Descrição |
+|---|---|
+| `aluno` | Alunos que solicitam documentos (`nome`, `ativo`) |
+| `curso` | Cursos (`nome` único) |
+| `tipo_documento` | Tipos de documento emitíveis (`nome` único) |
+| `status_solicitacao` | Estados possíveis de uma solicitação |
+| `solicitacao` | Solicitação em si, ligando aluno, curso, tipo e status |
 
-Ao criar um novo registro de Solicitação para um Aluno ativo, deve receber as informações:
+A tabela `solicitacao` registra `data_solicitacao`, `data_alteracao`,
+`data_emissao` e `prioridade` (`URGENTE`, `ALTA` ou `NORMAL`, com constraint de
+validação). Todas as chaves estrangeiras usam `ON DELETE RESTRICT`, e há índices
+nas colunas mais consultadas (aluno, curso, tipo, status, data e prioridade).
 
-* id - int
-* aluno.id - Aluno (Entidade)
-* curso.id - Curso (Entidade)
-* tipoDocumento.id - TipoDocumento (Entidade)
-* dataSolicitacao - DateTime
-* status.id - Status (Entidade)
-* dataAlteracao - DateTime
-* prioridade - Enum (URGENTE, ALTA, NORMAL)
+### Status iniciais (seed da V2)
 
-_RF01.1 – Cadastro demais Entidades [POST] (**OPCIONAL**)_
+| Código | Nome | Finaliza solicitação |
+|---|---|---|
+| `ABERTA` | Aberta | Não |
+| `EM_ANALISE` | Em análise | Não |
+| `APROVADA` | Aprovada | Não |
+| `EMITIDA` | Emitida | Sim |
+| `REPROVADA` | Reprovada | Sim |
 
-Criar endpoints para criação/alteração/remoção das demais entidades Aluno, Curso, TipoDocumento e Status.
+---
 
-_RF02 – Consulta Solicitações [GET]_
+## Perfis de ambiente
 
-Criar endpoints para pesquisar registros de Solicitação contendo filtros:
+| Perfil | Banco | `ddl-auto` | Flyway | Uso |
+|---|---|---|---|---|
+| `dev` | PostgreSQL | `validate` | habilitado | Desenvolvimento (padrão) |
+| `prod` | PostgreSQL | `validate` | habilitado | Produção |
+| `test` | H2 (em memória) | `create-drop` | desabilitado | Testes automatizados |
 
-* Aluno.nome
-* Curso.nome
-* status
-* período
-* tipoDocumento.nome
-* paginação
+Em `dev` e `prod`, o Hibernate apenas **valida** o schema contra o banco — quem
+cria e evolui a estrutura é exclusivamente o Flyway.
 
-Deve ser possivel verificar:
+---
 
-* Quantidade de solicitações por Status
-* Quantidade de solicitações por período
-* Solicitações realizadas por um Aluno
-* Média de tempo até emissão (entre solicitação e emissão)
-* Documentos mais solicitados
+## Variáveis de ambiente
 
-_RF03 – Alteração de Status [PATCH]_
+Copie `.env.example` para `.env` e ajuste os valores (o `.env` é ignorado pelo
+Git):
 
-Uma solicitação deve seguir um fluxo de aprovação de acordo com cada reponsável por uma etapa. Assim, implementar regras para atualizar a Solicitação:
+```bash
+cp .env.example .env
+```
 
-ABERTA -> EM_ANALISE -> APROVADA -> EMITIDA
-ABERTA -> EM_ANALISE -> REPROVADA
+| Variável | Descrição | Exemplo |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | Perfil ativo | `dev` |
+| `DB_NAME` | Nome do banco | `documentos_academicos` |
+| `DB_USERNAME` | Usuário do banco | `documentos_app` |
+| `DB_PASSWORD` | Senha do banco | *(defina a sua)* |
+| `DB_URL` | JDBC URL para execução local (fora do Docker) | `jdbc:postgresql://localhost:5432/documentos_academicos` |
+| `SERVER_PORT` | Porta HTTP da API | `8080` |
+| `DB_PORT` | Porta do PostgreSQL exposta pelo host | `5433` |
 
-Deve receber as informações:
+---
 
-* solicitacao.id - int
-* status.id - int
-* status.responsavel - int
+## Como executar
 
-Não permitir transições inválidas.
-Ao alterar o status de uma solicitação, será necessário informar o código do responsável, que deve ser igual ao responsável pelo status passado.
-Atualizar a dataAlteracao da Solicitação.
+### Com Docker (recomendado)
 
-_RF04 - Segurança_
+Sobe o PostgreSQL e a API juntos:
 
-Todos os endpoints existentes devem exigir a passagem de um Token JWT para seu funcionamento, o formato fica a sua escolha.
+```bash
+docker compose up --build
+```
 
-_RF05 – Auditoria_
+- API disponível em `http://localhost:8080`
+- PostgreSQL exposto na porta `5433` do host (5432 dentro da rede do Docker)
 
-Criar tabelas de auditoria para todas as entidades, registrando todas as movimentações realizadas nas mesmas. 
+O serviço `api` só inicia após o PostgreSQL passar no *health check*, e as
+migrations do Flyway são aplicadas automaticamente no startup da aplicação.
 
-_RF06 – Dashboard_
+Para parar e remover também o volume do banco (recomeço limpo):
 
-Montar dashboard onde seja possível visualizar e analisar os dados do RF03.
+```bash
+docker compose down -v
+```
 
-_RF07 – Telas Complementares_ (**OPCIONAL**)
+### Localmente (sem Docker)
 
-Criar telas para realizar as operações da API.
+Requer um PostgreSQL rodando e acessível via `DB_URL`, além de Java 21.
 
-## ESTRUTURAS PRIMÁRIAS
-Aqui uma sugestão de estrutura parcial para você seguir, melhorias ou correções são bem-vindas e encorajadas.
+```bash
+./mvnw spring-boot:run
+```
 
-**_Classe SOLICITACAO_**
+---
 
-* "id" - int (auto-gerado)
-* "aluno" - Relacionamento com a classe Aluno
-* "curso" - Relacionamento com a classe Curso
-* "tipo" - Relacionamento com a classe TipoDocumento
-* "dataSolicitacao" - DateTime (data criação)
-* "dataAlteracao" - DateTime (data última movimentação)
-* "status" - Relacionamento com a classe Status
-* "prioridade" - Enum
+## Testes
 
-**_Classe ALUNO**
+Os testes usam o perfil `test` com banco H2 em memória (Flyway desabilitado):
 
-* "id" - int (auto-gerado)
-* "nome" - string
-* "solicitacoes" - Set de Solicitacao
-* "ativo" - boolean
+```bash
+./mvnw test
+```
 
-**_Classe CURSO**
+---
 
-* "id" - int (auto-gerado)
-* "nome" - string
+## Health check
 
-**_Classe TIPODOCUMENTO**
+Com a aplicação no ar, o estado de saúde é exposto pelo Actuator:
 
-* "id" - int (auto-gerado)
-* "nome" - string
+```
+GET http://localhost:8080/actuator/health
+```
 
-**_Classe STATUS**
+Em `dev`, o endpoint mostra detalhes (`show-details=always`); em `prod`, apenas
+o status geral.
 
-* "id" - int (auto-gerado)
-* "nome" - string
-* "responsavel" - int
-* "finalizaSolicitacao" - boolean
+---
 
-**IMPORTANTE: Lembrando que a não completude de todos os pontos, não necessariamente é fator reprovatório, seu esforço será avaliado.**
+## Roadmap
+
+- [x] Bootstrap do projeto (Java 21 + Spring Boot + Maven)
+- [x] Conexão com PostgreSQL e perfis de ambiente (dev/prod/test)
+- [x] Ambiente Docker (API + PostgreSQL via Docker Compose)
+- [x] Versionamento do banco com Flyway (schema inicial + status)
+- [x] Health check via Actuator
+- [ ] Entidades JPA e repositórios
+- [ ] Serviços de domínio e regras de negócio do fluxo de solicitação
+- [ ] Endpoints REST (CRUD de solicitações e movimentação de status)
+- [ ] Validação e tratamento centralizado de erros
+- [ ] Autenticação e autorização (Spring Security + JWT)
+- [ ] Documentação da API (OpenAPI / Swagger)
+- [ ] Testes de integração dos endpoints
+
+---
+
+## Licença
+
+Distribuído sob os termos do arquivo [LICENSE](LICENSE).
