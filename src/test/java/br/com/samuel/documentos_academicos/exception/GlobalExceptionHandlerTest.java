@@ -8,11 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,12 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 import br.com.samuel.documentos_academicos.dto.request.AlunoRequest;
 import jakarta.validation.Valid;
 
-@WebMvcTest
-@Import({ GlobalExceptionHandlerTest.TestController.class, GlobalExceptionHandler.class })
 class GlobalExceptionHandlerTest {
 
-    @Autowired
-    private MockMvc mvc;
+    private final MockMvc mvc = MockMvcBuilders
+            .standaloneSetup(new TestController())
+            .setControllerAdvice(new GlobalExceptionHandler())
+            .build();
 
     @Test
     void recursoNaoEncontradoRetorna404NoFormatoPadrao() throws Exception {
