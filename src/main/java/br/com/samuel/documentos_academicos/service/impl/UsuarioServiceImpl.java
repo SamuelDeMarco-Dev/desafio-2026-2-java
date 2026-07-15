@@ -1,0 +1,75 @@
+package br.com.samuel.documentos_academicos.service.impl;
+
+import java.util.HashSet;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.samuel.documentos_academicos.dto.request.UsuarioRequest;
+import br.com.samuel.documentos_academicos.dto.response.UsuarioResponse;
+import br.com.samuel.documentos_academicos.entity.Usuario;
+import br.com.samuel.documentos_academicos.exception.RecursoDuplicadoException;
+import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoException;
+import br.com.samuel.documentos_academicos.mapper.UsuarioMapper;
+import br.com.samuel.documentos_academicos.repository.UsuarioRepository;
+import br.com.samuel.documentos_academicos.service.UsuarioService;
+
+@Service
+@Transactional(readOnly = true)
+public class UsuarioServiceImpl implements UsuarioService {
+
+    private final UsuarioRepository usuarioRepository;
+    private final UsuarioMapper usuarioMapper;
+    private final PasswordEncoder passwordEncoder;
+
+    public UsuarioServiceImpl(UsuarioRepository usuarioRepository,
+                              UsuarioMapper usuarioMapper,
+                              PasswordEncoder passwordEncoder) {
+        this.usuarioRepository = usuarioRepository;
+        this.usuarioMapper = usuarioMapper;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    @Transactional
+    public UsuarioResponse criar(UsuarioRequest request) {
+        if (usuarioRepository.existsByLogin(request.login())) {
+            throw new RecursoDuplicadoException(
+                    "Já existe um usuário com o login '" + request.login() + "'");
+        }
+        if (request.codigoResponsavel() != null
+                && usuarioRepository.existsByCodigoResponsavel(request.codigoResponsavel())) {
+            throw new RecursoDuplicadoException(
+                    "Já existe um usuário com o código de responsável " + request.codigoResponsavel());
+        }
+
+        Usuario usuario = new Usuario();
+        usuario.setNome(request.nome());
+        usuario.setLogin(request.login());
+        usuario.setSenha(passwordEncoder.encode(request.senha()));
+        usuario.setCodigoResponsavel(request.codigoResponsavel());
+        usuario.setAtivo(true);
+        usuario.setPerfis(new HashSet<>(request.perfis()));
+
+        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+    }
+
+    @Override
+    public UsuarioResponse buscarPorId(Long id) {
+        return usuarioMapper.toResponse(buscarEntidade(id));
+    }
+
+    @Override
+    @Transactional
+    public UsuarioResponse alterarSituacao(Long id, boolean ativo) {
+        Usuario usuario = buscarEntidade(id);
+        usuario.setAtivo(ativo);
+        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+    }
+
+    private Usuario buscarEntidade(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário " + id + " não encontrado"));
+    }
+}
