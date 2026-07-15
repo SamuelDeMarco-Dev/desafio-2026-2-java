@@ -37,6 +37,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, "Regra de negócio inválida", ex.getMessage(), req, List.of());
     }
 
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ResponseEntity<ErroResponse> handleCredenciais(CredenciaisInvalidasException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, "Credenciais inválidas", ex.getMessage(), req, List.of());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErroResponse> handleValidacao(MethodArgumentNotValidException ex, HttpServletRequest req) {
         List<CampoErro> campos = ex.getBindingResult().getFieldErrors().stream()

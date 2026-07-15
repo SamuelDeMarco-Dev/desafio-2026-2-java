@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -23,6 +24,7 @@ import br.com.samuel.documentos_academicos.service.CursoService;
 import br.com.samuel.documentos_academicos.service.TipoDocumentoService;
 
 @WebMvcTest(CursoController.class)
+@AutoConfigureMockMvc(addFilters = false)
 public class CursoControllerTest {
     @Autowired MockMvc mvc;
     @MockitoBean CursoService cursoService;
@@ -63,6 +65,7 @@ public class CursoControllerTest {
 }
 
 @WebMvcTest(TipoDocumentoController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class TipoDocumentoControllerTest {
 
     @Autowired MockMvc mvc;
