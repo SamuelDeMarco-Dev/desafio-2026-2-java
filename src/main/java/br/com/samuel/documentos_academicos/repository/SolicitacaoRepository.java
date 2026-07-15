@@ -7,4 +7,5 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long>{
     boolean existsByAlunoId(Long alunoId);
     boolean existsByCursoId(Long cursoId);
     boolean existsByTipoDocumentoId(Long tipoDocumentoId);
+    boolean existsByStatusId(Long statusId);
 }
