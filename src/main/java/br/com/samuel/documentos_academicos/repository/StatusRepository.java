@@ -1,6 +1,7 @@
 package br.com.samuel.documentos_academicos.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,4 +13,6 @@ public interface StatusRepository extends JpaRepository<Status, Long> {
 
     boolean existsByCodigoIgnoreCase(String codigo);
     boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
+
+    Optional<Status> findByCodigoIgnoreCase(String codigo);
 }
