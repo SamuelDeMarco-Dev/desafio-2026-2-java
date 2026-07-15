@@ -3,9 +3,11 @@
 API REST para cadastro, consulta e movimentação de solicitações de documentos
 acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 
-> **Status:** em desenvolvimento — a infraestrutura base (banco, migrations,
-> Docker e perfis de ambiente) já está pronta. As camadas de domínio e a API
-> REST ainda estão sendo implementadas. Veja o [Roadmap](#roadmap).
+> **Status:** em desenvolvimento. Já implementados: infraestrutura (banco,
+> migrations, Docker, perfis), o domínio JPA completo, contratos (DTOs) com
+> validação, tratamento global de erros e os CRUDs de **alunos, cursos, tipos de
+> documento e status**. Pendentes: cadastro/consulta de solicitações, segurança
+> (JWT), auditoria e documentação OpenAPI. Veja o [Roadmap](#roadmap).
 
 ---
 
@@ -36,12 +38,23 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 
 ## Estrutura do projeto
 
+Arquitetura em camadas (`controller → service → repository`), com contratos
+isolados por DTOs e mapeadores.
+
 ```
 desafio-2026-2-java/
 ├── src/
 │   ├── main/
 │   │   ├── java/br/com/samuel/documentos_academicos/
-│   │   │   └── DocumentosAcademicosApplication.java   # bootstrap Spring Boot
+│   │   │   ├── DocumentosAcademicosApplication.java   # bootstrap Spring Boot
+│   │   │   ├── controller/                            # endpoints REST
+│   │   │   ├── service/  (+ impl/)                    # regras de negócio
+│   │   │   ├── repository/                            # Spring Data JPA
+│   │   │   ├── entity/                                # entidades JPA
+│   │   │   ├── enums/                                 # Prioridade, CodigoStatus
+│   │   │   ├── dto/  (request/ e response/)           # contratos da API (records)
+│   │   │   ├── mapper/                                # entidade <-> DTO
+│   │   │   └── exception/                             # exceções + RestControllerAdvice
 │   │   └── resources/
 │   │       ├── application.properties                 # config base
 │   │       ├── application-dev.properties             # perfil dev
@@ -50,7 +63,7 @@ desafio-2026-2-java/
 │   │           ├── V1__create_initial_schema.sql
 │   │           └── V2__insert_initial_statuses.sql
 │   └── test/
-│       ├── java/.../DocumentosAcademicosApplicationTests.java
+│       ├── java/.../                                  # testes de controller (@WebMvcTest) e mappers
 │       └── resources/application-test.properties      # perfil de teste (H2)
 ├── Dockerfile                                         # build multi-stage
 ├── docker-compose.yml                                 # PostgreSQL + API
@@ -90,6 +103,94 @@ nas colunas mais consultadas (aluno, curso, tipo, status, data e prioridade).
 | `APROVADA` | Aprovada | Não |
 | `EMITIDA` | Emitida | Sim |
 | `REPROVADA` | Reprovada | Sim |
+
+---
+
+## API REST
+
+> Todos os endpoints de negócio ainda são públicos — a proteção por JWT entra no
+> milestone de segurança. Os corpos de request/response usam DTOs (nunca as
+> entidades diretamente).
+
+### Alunos — `/api/alunos`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/alunos` | Cadastra aluno (`nome` obrigatório) → **201** + `Location` |
+| `GET` | `/api/alunos` | Lista **paginada**; filtros opcionais `?nome=` e `?ativo=` |
+| `GET` | `/api/alunos/{id}` | Consulta por id |
+| `PUT` | `/api/alunos/{id}` | Atualiza o nome |
+| `PATCH` | `/api/alunos/{id}/ativo` | Ativa/inativa (corpo `{ "ativo": false }`) |
+| `DELETE` | `/api/alunos/{id}` | Remove (bloqueado se houver solicitações vinculadas → **422**) |
+
+### Cursos — `/api/cursos`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/cursos` | Cadastra curso; **nome único** (duplicado → **409**) |
+| `GET` | `/api/cursos` | Lista paginada; filtro opcional `?nome=` |
+| `GET` | `/api/cursos/{id}` | Consulta por id |
+| `PUT` | `/api/cursos/{id}` | Atualiza (mantém unicidade do nome) |
+| `DELETE` | `/api/cursos/{id}` | Remove (bloqueado se vinculado a solicitações → **422**) |
+
+### Tipos de documento — `/api/tipos-documento`
+
+Mesmo contrato dos cursos (nome único, listagem paginada, integridade
+referencial no *delete*): `POST`, `GET`, `GET/{id}`, `PUT/{id}`, `DELETE/{id}`.
+
+### Status — `/api/status`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/status` | Cadastra status; **código único**; `finalizaSolicitacao` coerente com o fluxo |
+| `GET` | `/api/status` | Lista todos (tabela de referência, sem paginação) |
+| `GET` | `/api/status/{id}` | Consulta por id |
+| `PUT` | `/api/status/{id}` | Atualiza; estruturais têm código e finalização imutáveis |
+| `DELETE` | `/api/status/{id}` | Remove; **estruturais e vinculados são bloqueados** → **422** |
+
+Os status estruturais (`ABERTA`, `EM_ANALISE`, `APROVADA`, `EMITIDA`,
+`REPROVADA`) não podem ser excluídos nem ter o código/finalização alterados.
+
+### Paginação
+
+As listagens paginadas aceitam `?page=`, `?size=` e `?sort=` (ex.:
+`?page=0&size=20&sort=nome,asc`) e respondem num envelope padronizado:
+
+```json
+{
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 0,
+  "totalPages": 0,
+  "first": true,
+  "last": true
+}
+```
+
+### Formato de erro
+
+Todos os erros seguem um formato único, produzido por um
+`@RestControllerAdvice` global:
+
+```json
+{
+  "timestamp": "2026-07-14T18:00:00",
+  "status": 422,
+  "erro": "Regra de negócio inválida",
+  "mensagem": "Curso está vinculado a solicitações e não pode ser removido.",
+  "path": "/api/cursos/1",
+  "campos": []
+}
+```
+
+| Situação | HTTP |
+|---|---|
+| Validação de campos (`campos` preenchido) / JSON malformado | `400` |
+| Recurso não encontrado | `404` |
+| Recurso duplicado (nome/código já existe) | `409` |
+| Regra de negócio violada (ex.: exclusão bloqueada) | `422` |
+| Erro inesperado (sem *stack trace*, com código de correlação no log) | `500` |
 
 ---
 
@@ -184,16 +285,27 @@ o status geral.
 
 ## Roadmap
 
+**Milestone 1 — Infraestrutura**
 - [x] Bootstrap do projeto (Java 21 + Spring Boot + Maven)
 - [x] Conexão com PostgreSQL e perfis de ambiente (dev/prod/test)
 - [x] Ambiente Docker (API + PostgreSQL via Docker Compose)
 - [x] Versionamento do banco com Flyway (schema inicial + status)
 - [x] Health check via Actuator
-- [ ] Entidades JPA e repositórios
-- [ ] Serviços de domínio e regras de negócio do fluxo de solicitação
-- [ ] Endpoints REST (CRUD de solicitações e movimentação de status)
-- [ ] Validação e tratamento centralizado de erros
+
+**Milestone 2 — Domínio e cadastros**
+- [x] Entidades JPA e enums do domínio
+- [x] DTOs (records) com validação e mapeadores
+- [x] Tratamento global de erros (`@RestControllerAdvice` + formato único)
+- [x] CRUD de alunos (com paginação e inativação)
+- [x] CRUD de cursos (nome único)
+- [x] CRUD de tipos de documento (nome único)
+- [x] Gerenciamento de status (fluxo estrutural preservado)
+
+**Próximos milestones**
+- [ ] Cadastro de solicitações + consulta com filtros e indicadores
 - [ ] Autenticação e autorização (Spring Security + JWT)
+- [ ] Fluxo e alteração de status das solicitações
+- [ ] Auditoria (Hibernate Envers)
 - [ ] Documentação da API (OpenAPI / Swagger)
 - [ ] Testes de integração dos endpoints
 
