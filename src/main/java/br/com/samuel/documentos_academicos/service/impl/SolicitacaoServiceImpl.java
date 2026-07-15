@@ -3,11 +3,15 @@ package br.com.samuel.documentos_academicos.service.impl;
 import java.time.Clock;
 import java.time.LocalDateTime;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoCreateRequest;
+import br.com.samuel.documentos_academicos.dto.request.SolicitacaoFiltro;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResponse;
+import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResumoResponse;
 import br.com.samuel.documentos_academicos.entity.Aluno;
 import br.com.samuel.documentos_academicos.entity.Curso;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
@@ -24,6 +28,7 @@ import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.repository.StatusRepository;
 import br.com.samuel.documentos_academicos.repository.TipoDocumentoRepository;
 import br.com.samuel.documentos_academicos.service.SolicitacaoService;
+import br.com.samuel.documentos_academicos.specification.SolicitacaoSpecification;
 
 @Service
 @Transactional(readOnly = true)
@@ -90,4 +95,19 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
 
         return solicitacaoMapper.toResponse(solicitacaoRepository.save(solicitacao));
     }
+
+@Override
+public SolicitacaoResponse buscarPorId(Long id) {
+    Solicitacao solicitacao = solicitacaoRepository.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException(
+                    "Solicitação " + id + " não encontrada"));
+    return solicitacaoMapper.toResponse(solicitacao);
+}
+
+@Override
+public Page<SolicitacaoResumoResponse> listar(SolicitacaoFiltro filtro, Pageable pageable) {
+    return solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(filtro), pageable)
+            .map(solicitacaoMapper::toResumo);
+}
+
 }

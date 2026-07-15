@@ -1,9 +1,11 @@
 package br.com.samuel.documentos_academicos.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 
-public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long>{
+public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long>, JpaSpecificationExecutor<Solicitacao>{
     boolean existsByAlunoId(Long alunoId);
     boolean existsByCursoId(Long cursoId);
     boolean existsByTipoDocumentoId(Long tipoDocumentoId);
