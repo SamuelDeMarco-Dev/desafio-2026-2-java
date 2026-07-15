@@ -5,9 +5,11 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 
 > **Status:** em desenvolvimento. Já implementados: infraestrutura (banco,
 > migrations, Docker, perfis), o domínio JPA completo, contratos (DTOs) com
-> validação, tratamento global de erros e os CRUDs de **alunos, cursos, tipos de
-> documento e status**. Pendentes: cadastro/consulta de solicitações, segurança
-> (JWT), auditoria e documentação OpenAPI. Veja o [Roadmap](#roadmap).
+> validação, tratamento global de erros, os CRUDs de **alunos, cursos, tipos de
+> documento e status**, o **cadastro e a consulta de solicitações** (filtros
+> dinâmicos + paginação) e os **indicadores do dashboard**. Pendentes: segurança
+> (JWT), movimentação de status, auditoria e documentação OpenAPI. Veja o
+> [Roadmap](#roadmap).
 
 ---
 
@@ -47,9 +49,11 @@ desafio-2026-2-java/
 │   ├── main/
 │   │   ├── java/br/com/samuel/documentos_academicos/
 │   │   │   ├── DocumentosAcademicosApplication.java   # bootstrap Spring Boot
+│   │   │   ├── config/                                # beans de configuração (Clock)
 │   │   │   ├── controller/                            # endpoints REST
 │   │   │   ├── service/  (+ impl/)                    # regras de negócio
 │   │   │   ├── repository/                            # Spring Data JPA
+│   │   │   ├── specification/                         # consultas dinâmicas (Criteria)
 │   │   │   ├── entity/                                # entidades JPA
 │   │   │   ├── enums/                                 # Prioridade, CodigoStatus
 │   │   │   ├── dto/  (request/ e response/)           # contratos da API (records)
@@ -119,6 +123,7 @@ nas colunas mais consultadas (aluno, curso, tipo, status, data e prioridade).
 | `POST` | `/api/alunos` | Cadastra aluno (`nome` obrigatório) → **201** + `Location` |
 | `GET` | `/api/alunos` | Lista **paginada**; filtros opcionais `?nome=` e `?ativo=` |
 | `GET` | `/api/alunos/{id}` | Consulta por id |
+| `GET` | `/api/alunos/{id}/solicitacoes` | Solicitações do aluno (**paginado**) |
 | `PUT` | `/api/alunos/{id}` | Atualiza o nome |
 | `PATCH` | `/api/alunos/{id}/ativo` | Ativa/inativa (corpo `{ "ativo": false }`) |
 | `DELETE` | `/api/alunos/{id}` | Remove (bloqueado se houver solicitações vinculadas → **422**) |
@@ -150,6 +155,74 @@ referencial no *delete*): `POST`, `GET`, `GET/{id}`, `PUT/{id}`, `DELETE/{id}`.
 
 Os status estruturais (`ABERTA`, `EM_ANALISE`, `APROVADA`, `EMITIDA`,
 `REPROVADA`) não podem ser excluídos nem ter o código/finalização alterados.
+
+### Solicitações — `/api/solicitacoes`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/solicitacoes` | Cria solicitação → **201** + `Location` |
+| `GET` | `/api/solicitacoes` | Lista **paginada** com filtros dinâmicos (resumo) |
+| `GET` | `/api/solicitacoes/{id}` | Consulta detalhada (dados das entidades relacionadas) |
+
+**Criação** — o cliente informa apenas as referências e a prioridade:
+
+```json
+{
+  "alunoId": 1,
+  "cursoId": 1,
+  "tipoDocumentoId": 1,
+  "prioridade": "NORMAL"
+}
+```
+
+Regras aplicadas pelo servidor:
+
+- O aluno deve existir e estar **ativo** (inativo → **422**); referências
+  inexistentes → **404**.
+- O **status inicial é sempre `ABERTA`** — o cliente não pode escolhê-lo.
+- `dataSolicitacao` e `dataAlteracao` são geradas pelo servidor (via um `Clock`
+  injetável, o que mantém as datas testáveis); `dataEmissao` inicia nula.
+- `prioridade` é opcional e assume `NORMAL` quando omitida.
+
+**Filtros da listagem** (todos opcionais, funcionam isolados ou combinados; os
+não informados são ignorados):
+
+| Parâmetro | Efeito |
+|---|---|
+| `aluno` | Nome do aluno (parcial, ignora maiúsculas/minúsculas) |
+| `curso` | Nome do curso (parcial, ignora caixa) |
+| `tipoDocumento` | Nome do tipo de documento (parcial, ignora caixa) |
+| `status` | Código do status (ex.: `ABERTA`) |
+| `prioridade` | `URGENTE`, `ALTA` ou `NORMAL` |
+| `dataInicio` / `dataFim` | Intervalo de `dataSolicitacao` (ISO `yyyy-MM-dd`, **fim inclusivo**) |
+
+Exemplo:
+
+```
+GET /api/solicitacoes?aluno=Samuel&status=ABERTA&dataInicio=2026-07-01&dataFim=2026-07-31&page=0&size=20&sort=dataSolicitacao,desc
+```
+
+### Dashboard — `/api/dashboard`
+
+Indicadores agregados. Todos aceitam o filtro de período opcional
+`?dataInicio=&dataFim=`.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/dashboard/resumo` | Total no período + contagem por status + tempo médio |
+| `GET` | `/api/dashboard/solicitacoes-por-status` | Quantidade por status (maior primeiro) |
+| `GET` | `/api/dashboard/documentos-mais-solicitados` | Ranking de tipos de documento |
+| `GET` | `/api/dashboard/tempo-medio-emissao` | Tempo médio entre solicitação e emissão |
+
+O **tempo médio considera apenas solicitações emitidas** (com `dataEmissao`
+preenchida) e é retornado em dias (fracionário):
+
+```json
+{ "diasMedios": 2.5, "totalEmitidas": 4 }
+```
+
+As consultas de indicadores usam agregações no banco projetadas diretamente em
+DTOs — não carregam entidades completas.
 
 ### Paginação
 
@@ -301,8 +374,13 @@ o status geral.
 - [x] CRUD de tipos de documento (nome único)
 - [x] Gerenciamento de status (fluxo estrutural preservado)
 
+**Milestone 3 — Solicitações e consultas**
+- [x] Cadastro de solicitações (aluno ativo, status `ABERTA` e datas pelo servidor)
+- [x] Consulta detalhada e listagem paginada com filtros dinâmicos (Specification)
+- [x] Indicadores do dashboard (por status, ranking de documentos, tempo médio)
+- [x] Solicitações por aluno (paginado)
+
 **Próximos milestones**
-- [ ] Cadastro de solicitações + consulta com filtros e indicadores
 - [ ] Autenticação e autorização (Spring Security + JWT)
 - [ ] Fluxo e alteração de status das solicitações
 - [ ] Auditoria (Hibernate Envers)
