@@ -12,4 +12,5 @@ public interface SolicitacaoService {
     SolicitacaoResponse criar(SolicitacaoCreateRequest request);
     SolicitacaoResponse buscarPorId(Long id);
     Page<SolicitacaoResumoResponse> listar(SolicitacaoFiltro filtro, Pageable pageable);
+    Page<SolicitacaoResumoResponse> listarPorAluno(Long alunoId, Pageable pageable);
 }

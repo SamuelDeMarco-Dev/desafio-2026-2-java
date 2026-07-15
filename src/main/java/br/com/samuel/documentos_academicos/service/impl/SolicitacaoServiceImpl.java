@@ -110,4 +110,13 @@ public Page<SolicitacaoResumoResponse> listar(SolicitacaoFiltro filtro, Pageable
             .map(solicitacaoMapper::toResumo);
 }
 
+@Override
+public Page<SolicitacaoResumoResponse> listarPorAluno(Long alunoId, Pageable pageable) {
+    if (!alunoRepository.existsById(alunoId)) {
+        throw new RecursoNaoEncontradoException("Aluno " + alunoId + " não encontrado");
+    }
+    return solicitacaoRepository.findByAlunoId(alunoId, pageable)
+            .map(solicitacaoMapper::toResumo);
+}
+
 }
