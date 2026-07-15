@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import br.com.samuel.documentos_academicos.dto.response.AlunoResponse;
 import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoException;
 import br.com.samuel.documentos_academicos.service.AlunoService;
+import br.com.samuel.documentos_academicos.service.SolicitacaoService;
 
 @WebMvcTest(AlunoController.class)
 class AlunoControllerTest {
@@ -28,6 +29,9 @@ class AlunoControllerTest {
 
     @MockitoBean
     AlunoService alunoService;
+
+    @MockitoBean
+    SolicitacaoService solicitacaoService;
 
     @Test
     void criarComNomeValidoRetorna201() throws Exception {

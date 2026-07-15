@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,21 +14,25 @@ import br.com.samuel.documentos_academicos.dto.request.AlunoRequest;
 import br.com.samuel.documentos_academicos.dto.request.AlunoStatusRequest;
 import br.com.samuel.documentos_academicos.dto.response.AlunoResponse;
 import br.com.samuel.documentos_academicos.dto.response.PageResponse;
+import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResumoResponse;
 import br.com.samuel.documentos_academicos.service.AlunoService;
+import br.com.samuel.documentos_academicos.service.SolicitacaoService;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/alunos")
 public class AlunoController {
-    
-    private final AlunoService alunoService;
 
-    public AlunoController(AlunoService alunoService){
+    private final AlunoService alunoService;
+    private final SolicitacaoService solicitacaoService;
+
+    public AlunoController(AlunoService alunoService, SolicitacaoService solicitacaoService) {
         this.alunoService = alunoService;
+        this.solicitacaoService = solicitacaoService;
     }
 
     @PostMapping
-    public ResponseEntity<AlunoResponse> criar(@Valid @RequestBody AlunoRequest request, 
+    public ResponseEntity<AlunoResponse> criar(@Valid @RequestBody AlunoRequest request,
                                                UriComponentsBuilder uriBuilder){
         AlunoResponse response = alunoService.criar(request);
         URI location = uriBuilder.path("/api/alunos/{id}").buildAndExpand(response.id()).toUri();
@@ -46,6 +51,13 @@ public class AlunoController {
     @GetMapping("/{id}")
     public AlunoResponse buscar(@PathVariable Long id){
         return alunoService.buscarPorId(id);
+    }
+
+    @GetMapping("/{id}/solicitacoes")
+    public PageResponse<SolicitacaoResumoResponse> solicitacoesDoAluno(
+            @PathVariable Long id,
+            @PageableDefault(size = 20, sort = "dataSolicitacao", direction = Sort.Direction.DESC) Pageable pageable){
+        return PageResponse.from(solicitacaoService.listarPorAluno(id, pageable));
     }
 
     @PutMapping("/{id}")
