@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -71,4 +72,19 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(), status.value(), erro, mensagem, req.getRequestURI(), campos);
         return ResponseEntity.status(status).body(body);
     }
+
+    @ExceptionHandler(ResponsavelInvalidoException.class)
+    public ResponseEntity<ErroResponse> handleResponsavel(ResponsavelInvalidoException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, "Responsável inválido", ex.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErroResponse> handleConcorrencia(ObjectOptimisticLockingFailureException ex,
+                                                       HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, "Conflito de concorrência",
+            "A solicitação foi alterada por outro usuário. Recarregue os dados e tente novamente.",
+            req, List.of());
+    }
+
+
 }

@@ -25,6 +25,7 @@ import br.com.samuel.documentos_academicos.entity.Curso;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 import br.com.samuel.documentos_academicos.entity.Status;
 import br.com.samuel.documentos_academicos.entity.TipoDocumento;
+import br.com.samuel.documentos_academicos.entity.Usuario;
 import br.com.samuel.documentos_academicos.enums.Prioridade;
 import br.com.samuel.documentos_academicos.exception.AlunoInativoException;
 import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoException;
@@ -109,4 +110,17 @@ class SolicitacaoServiceImplTest {
         assertThrows(RecursoNaoEncontradoException.class,
                 () -> service.criar(new SolicitacaoCreateRequest(99L, 1L, 1L, null)));
     }
+
+    private Usuario autenticado(Integer codigo) { /* Usuario com codigoResponsavel = codigo */ }
+    private Status status(Long id, String codigo, boolean finaliza) { /* ... */ }
+    private Solicitacao solicitacaoEm(Status atual) { /* datas preenchidas */ }
+
+    @Test void aberta_paraEmAnalise_atualizaDataAlteracaoESemEmissao()
+    @Test void aprovada_paraEmitida_preencheDataEmissao()
+    @Test void emAnalise_paraReprovada_mantemDataEmissaoNula()
+    @Test void aberta_paraEmitida_lancaTransicaoInvalida()         // pula etapas
+    @Test void solicitacaoEmitida_naoPodeSerMovimentada()          // finalizada
+    @Test void codigoResponsavelDiferenteDoAutenticado_lancaResponsavelInvalido()
+
+
 }
