@@ -43,5 +43,10 @@ public class Solicitacao {
     @Enumerated(EnumType.STRING)
     @Column(name = "prioridade", nullable = false, length = 20)
     private Prioridade prioridade = Prioridade.NORMAL;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
 }
 

@@ -15,6 +15,7 @@ import br.com.samuel.documentos_academicos.mapper.TipoDocumentoMapper;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.repository.TipoDocumentoRepository;
 import br.com.samuel.documentos_academicos.service.TipoDocumentoService;
+import br.com.samuel.documentos_academicos.specification.FiltroNomeSpecification;
 
 @Service
 @Transactional(readOnly = true)
@@ -49,7 +50,9 @@ public class TipoDocumentoServiceImpl implements TipoDocumentoService {
 
     @Override
     public Page<TipoDocumentoResponse> listar(String nome, Pageable pageable) {
-        return tipoDocumentoRepository.buscar(nome, pageable).map(tipoDocumentoMapper::toResponse);
+        return tipoDocumentoRepository
+                .findAll(FiltroNomeSpecification.<TipoDocumento>contemNome(nome), pageable)
+                .map(tipoDocumentoMapper::toResponse);
     }
 
     @Override

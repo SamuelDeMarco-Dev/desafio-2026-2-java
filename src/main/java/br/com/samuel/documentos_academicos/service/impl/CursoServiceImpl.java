@@ -15,6 +15,7 @@ import br.com.samuel.documentos_academicos.mapper.CursoMapper;
 import br.com.samuel.documentos_academicos.repository.CursoRepository;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.service.CursoService;
+import br.com.samuel.documentos_academicos.specification.FiltroNomeSpecification;
 
 @Service
 @Transactional(readOnly = true)
@@ -49,7 +50,8 @@ public class CursoServiceImpl implements CursoService {
 
     @Override
     public Page<CursoResponse> listar(String nome, Pageable pageable) {
-        return cursoRepository.buscar(nome, pageable).map(cursoMapper::toResponse);
+        return cursoRepository.findAll(FiltroNomeSpecification.<Curso>contemNome(nome), pageable)
+                .map(cursoMapper::toResponse);
     }
 
     @Override

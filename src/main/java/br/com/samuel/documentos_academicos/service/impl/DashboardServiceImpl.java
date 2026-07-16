@@ -54,11 +54,18 @@ public class DashboardServiceImpl implements DashboardService {
         return new TempoMedioEmissaoResponse(diasMedios, intervalos.size());
     }
 
+    /*
+     * Quando o período não é informado usamos limites amplos em vez de null: um
+     * parâmetro nulo impede o PostgreSQL de inferir o tipo e quebra a consulta.
+     */
+    private static final LocalDateTime INICIO_ABERTO = LocalDateTime.of(1900, 1, 1, 0, 0);
+    private static final LocalDateTime FIM_ABERTO = LocalDateTime.of(9999, 12, 31, 0, 0);
+
     private LocalDateTime inicioDe(LocalDate data) {
-        return data != null ? data.atStartOfDay() : null;
+        return data != null ? data.atStartOfDay() : INICIO_ABERTO;
     }
 
     private LocalDateTime fimDe(LocalDate data) {
-        return data != null ? data.plusDays(1).atStartOfDay() : null; // fim inclusivo
+        return data != null ? data.plusDays(1).atStartOfDay() : FIM_ABERTO; // fim inclusivo
     }
 }
