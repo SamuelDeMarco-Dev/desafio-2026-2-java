@@ -2,6 +2,7 @@ package br.com.samuel.documentos_academicos.service.impl;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 import org.springframework.data.domain.Page;
@@ -12,10 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.samuel.documentos_academicos.dto.request.AlteracaoStatusRequest;
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoCreateRequest;
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoFiltro;
+import br.com.samuel.documentos_academicos.dto.response.HistoricoStatusResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResumoResponse;
 import br.com.samuel.documentos_academicos.entity.Aluno;
 import br.com.samuel.documentos_academicos.entity.Curso;
+import br.com.samuel.documentos_academicos.entity.HistoricoStatus;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 import br.com.samuel.documentos_academicos.entity.Status;
 import br.com.samuel.documentos_academicos.entity.TipoDocumento;
@@ -27,9 +30,11 @@ import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoExcepti
 import br.com.samuel.documentos_academicos.exception.RegraNegocioException;
 import br.com.samuel.documentos_academicos.exception.ResponsavelInvalidoException;
 import br.com.samuel.documentos_academicos.exception.TransicaoStatusInvalidaException;
+import br.com.samuel.documentos_academicos.mapper.HistoricoStatusMapper;
 import br.com.samuel.documentos_academicos.mapper.SolicitacaoMapper;
 import br.com.samuel.documentos_academicos.repository.AlunoRepository;
 import br.com.samuel.documentos_academicos.repository.CursoRepository;
+import br.com.samuel.documentos_academicos.repository.HistoricoStatusRepository;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.repository.StatusRepository;
 import br.com.samuel.documentos_academicos.repository.TipoDocumentoRepository;
@@ -46,7 +51,9 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final StatusRepository statusRepository;
     private final SolicitacaoRepository solicitacaoRepository;
+    private final HistoricoStatusRepository historicoStatusRepository;
     private final SolicitacaoMapper solicitacaoMapper;
+    private final HistoricoStatusMapper historicoStatusMapper;
     private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
     private final Clock clock;
 
@@ -55,7 +62,9 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
                                   TipoDocumentoRepository tipoDocumentoRepository,
                                   StatusRepository statusRepository,
                                   SolicitacaoRepository solicitacaoRepository,
+                                  HistoricoStatusRepository historicoStatusRepository,
                                   SolicitacaoMapper solicitacaoMapper,
+                                  HistoricoStatusMapper historicoStatusMapper,
                                   UsuarioAutenticadoProvider usuarioAutenticadoProvider,
                                   Clock clock) {
         this.alunoRepository = alunoRepository;
@@ -63,7 +72,9 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.statusRepository = statusRepository;
         this.solicitacaoRepository = solicitacaoRepository;
+        this.historicoStatusRepository = historicoStatusRepository;
         this.solicitacaoMapper = solicitacaoMapper;
+        this.historicoStatusMapper = historicoStatusMapper;
         this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
         this.clock = clock;
     }
@@ -91,6 +102,7 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Status inicial ABERTA não encontrado (verifique as migrations)"));
 
+        Usuario autenticado = usuarioAutenticadoProvider.obter();
         LocalDateTime agora = LocalDateTime.now(clock);
 
         Solicitacao solicitacao = new Solicitacao();
@@ -103,7 +115,9 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
         solicitacao.setDataAlteracao(agora);
         // dataEmissao permanece null até a emissão (Issue 19)
 
-        return solicitacaoMapper.toResponse(solicitacaoRepository.save(solicitacao));
+        Solicitacao salva = solicitacaoRepository.save(solicitacao);
+        registrar(salva, null, statusInicial, autenticado, agora); // anterior null = abertura
+        return solicitacaoMapper.toResponse(salva);
     }
 
 @Override
@@ -179,7 +193,30 @@ public SolicitacaoResponse alterarStatus(Long id, AlteracaoStatusRequest request
         solicitacao.setDataEmissao(agora);   // REPROVADA mantém dataEmissao nula
     }
 
-    return solicitacaoMapper.toResponse(solicitacaoRepository.save(solicitacao));
+    Solicitacao salva = solicitacaoRepository.save(solicitacao);
+    registrar(salva, atual, destino, autenticado, agora);
+    return solicitacaoMapper.toResponse(salva);
+}
+
+@Override
+public List<HistoricoStatusResponse> historico(Long solicitacaoId) {
+    if (!solicitacaoRepository.existsById(solicitacaoId)) {
+        throw new RecursoNaoEncontradoException("Solicitação " + solicitacaoId + " não encontrada");
+    }
+    return historicoStatusRepository
+            .findBySolicitacaoIdOrderByDataMovimentacaoAscIdAsc(solicitacaoId)
+            .stream().map(historicoStatusMapper::toResponse).toList();
+}
+
+private void registrar(Solicitacao solicitacao, Status anterior, Status novo,
+                       Usuario usuario, LocalDateTime quando) {
+    HistoricoStatus h = new HistoricoStatus();
+    h.setSolicitacao(solicitacao);
+    h.setStatusAnterior(anterior);
+    h.setStatusNovo(novo);
+    h.setUsuario(usuario);
+    h.setDataMovimentacao(quando);
+    historicoStatusRepository.save(h);
 }
 
 

@@ -1,6 +1,7 @@
 package br.com.samuel.documentos_academicos.controller;
 
 import java.net.URI;
+import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import br.com.samuel.documentos_academicos.dto.request.AlteracaoStatusRequest;
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoCreateRequest;
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoFiltro;
+import br.com.samuel.documentos_academicos.dto.response.HistoricoStatusResponse;
 import br.com.samuel.documentos_academicos.dto.response.PageResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResumoResponse;
@@ -60,6 +62,11 @@ public class SolicitacaoController {
     public SolicitacaoResponse alterarStatus(@PathVariable Long id,
                                          @Valid @RequestBody AlteracaoStatusRequest request) {
         return solicitacaoService.alterarStatus(id, request);
+    }
+
+    @GetMapping("/{id}/historico")
+    public List<HistoricoStatusResponse> historico(@PathVariable Long id) {
+        return solicitacaoService.historico(id);
     }
 
 }

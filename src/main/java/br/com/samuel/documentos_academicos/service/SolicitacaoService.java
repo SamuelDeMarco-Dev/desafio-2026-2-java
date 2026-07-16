@@ -1,11 +1,14 @@
 package br.com.samuel.documentos_academicos.service;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import br.com.samuel.documentos_academicos.dto.request.AlteracaoStatusRequest;
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoCreateRequest;
 import br.com.samuel.documentos_academicos.dto.request.SolicitacaoFiltro;
+import br.com.samuel.documentos_academicos.dto.response.HistoricoStatusResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResumoResponse;
 
@@ -15,4 +18,5 @@ public interface SolicitacaoService {
     Page<SolicitacaoResumoResponse> listar(SolicitacaoFiltro filtro, Pageable pageable);
     Page<SolicitacaoResumoResponse> listarPorAluno(Long alunoId, Pageable pageable);
     SolicitacaoResponse alterarStatus(Long id, AlteracaoStatusRequest request);
+    List<HistoricoStatusResponse> historico(Long solicitacaoId);
 }
