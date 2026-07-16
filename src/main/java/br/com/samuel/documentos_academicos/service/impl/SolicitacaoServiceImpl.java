@@ -2,6 +2,7 @@ package br.com.samuel.documentos_academicos.service.impl;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ import br.com.samuel.documentos_academicos.repository.CursoRepository;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.repository.StatusRepository;
 import br.com.samuel.documentos_academicos.repository.TipoDocumentoRepository;
+import br.com.samuel.documentos_academicos.security.UsuarioAutenticadoProvider;
 import br.com.samuel.documentos_academicos.service.SolicitacaoService;
 import br.com.samuel.documentos_academicos.specification.SolicitacaoSpecification;
 
@@ -45,6 +47,7 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
     private final StatusRepository statusRepository;
     private final SolicitacaoRepository solicitacaoRepository;
     private final SolicitacaoMapper solicitacaoMapper;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
     private final Clock clock;
 
     public SolicitacaoServiceImpl(AlunoRepository alunoRepository,
@@ -53,6 +56,7 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
                                   StatusRepository statusRepository,
                                   SolicitacaoRepository solicitacaoRepository,
                                   SolicitacaoMapper solicitacaoMapper,
+                                  UsuarioAutenticadoProvider usuarioAutenticadoProvider,
                                   Clock clock) {
         this.alunoRepository = alunoRepository;
         this.cursoRepository = cursoRepository;
@@ -60,6 +64,7 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
         this.statusRepository = statusRepository;
         this.solicitacaoRepository = solicitacaoRepository;
         this.solicitacaoMapper = solicitacaoMapper;
+        this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
         this.clock = clock;
     }
 

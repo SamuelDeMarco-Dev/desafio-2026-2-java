@@ -1,10 +1,26 @@
 package br.com.samuel.documentos_academicos.enums;
 
-import java.util.Set;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 
 public enum CodigoStatus {
+    ABERTA(false),
+    EM_ANALISE(false),
+    APROVADA(false),
+    EMITIDA(true),
+    REPROVADA(true);
+
+    private final boolean finalizaSolicitacao;
+
+    CodigoStatus(boolean finalizaSolicitacao){
+        this.finalizaSolicitacao = finalizaSolicitacao;
+    }
+
+    public boolean finalizaSolicitacao(){
+        return finalizaSolicitacao;
+    }
+
     public Set<CodigoStatus> transicoesPermitidas(){
         return switch (this) {
             case ABERTA -> Set.of(EM_ANALISE);
@@ -16,16 +32,6 @@ public enum CodigoStatus {
 
     public boolean permiteTransicaoPara(CodigoStatus destino) {
         return transicoesPermitidas().contains(destino);
-    }
-    
-    private final boolean finalizaSolicitacao;
-
-    CodigoStatus(boolean finalizaSolicitacao){
-        this.finalizaSolicitacao = finalizaSolicitacao;
-    }
-
-    public boolean finalizaSolicitacao(){
-        return finalizaSolicitacao;
     }
 
     public static Optional<CodigoStatus> porCodigo(String codigo){
