@@ -43,22 +43,34 @@ class DashboardQueriesTest {
         salvar(samuel, curso, diploma, aberta, null);
     }
 
+    // O repository sempre recebe um intervalo fechado — quem traduz "sem período"
+    // para estes limites amplos é o DashboardServiceImpl.
+    private static final LocalDateTime INICIO_ABERTO = LocalDateTime.of(1900, 1, 1, 0, 0);
+    private static final LocalDateTime FIM_ABERTO = LocalDateTime.of(9999, 12, 31, 0, 0);
+
     @Test
     void contaPorStatus() {
-        var lista = solicitacaoRepository.contarPorStatus(null, null);
+        var lista = solicitacaoRepository.contarPorStatus(INICIO_ABERTO, FIM_ABERTO);
         assertEquals(3, lista.stream().mapToLong(ContagemStatusResponse::total).sum());
     }
 
     @Test
     void documentosMaisSolicitadosOrdenaDesc() {
-        var lista = solicitacaoRepository.documentosMaisSolicitados(null, null);
+        var lista = solicitacaoRepository.documentosMaisSolicitados(INICIO_ABERTO, FIM_ABERTO);
         assertEquals("Histórico", lista.get(0).tipoDocumento());
         assertEquals(2, lista.get(0).total());
     }
 
     @Test
     void intervalosEmissaoSoConsideraEmitidas() {
-        assertEquals(1, solicitacaoRepository.intervalosEmissao(null, null).size());
+        assertEquals(1, solicitacaoRepository.intervalosEmissao(INICIO_ABERTO, FIM_ABERTO).size());
+    }
+
+    @Test
+    void periodoRestritoNaoTrazSolicitacoesForaDaJanela() {
+        LocalDateTime ontem = LocalDateTime.now().minusDays(1);
+        var lista = solicitacaoRepository.contarPorStatus(INICIO_ABERTO, ontem);
+        assertEquals(0, lista.stream().mapToLong(ContagemStatusResponse::total).sum());
     }
 
     // ----- helpers -----

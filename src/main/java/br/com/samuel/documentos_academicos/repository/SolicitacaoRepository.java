@@ -15,6 +15,12 @@ import br.com.samuel.documentos_academicos.dto.response.ContagemTipoDocumentoRes
 import br.com.samuel.documentos_academicos.dto.response.EmissaoIntervalo;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 
+/*
+ * As consultas de indicadores recebem sempre um intervalo fechado: quando o
+ * período não é informado, o service passa limites amplos (ver DashboardServiceImpl).
+ * Nenhum parâmetro nulo chega ao banco — o PostgreSQL não consegue inferir o tipo
+ * de um parâmetro nulo e a consulta quebraria.
+ */
 public interface SolicitacaoRepository
         extends JpaRepository<Solicitacao, Long>, JpaSpecificationExecutor<Solicitacao> {
 
@@ -29,8 +35,7 @@ public interface SolicitacaoRepository
            select new br.com.samuel.documentos_academicos.dto.response.ContagemStatusResponse(
                   s.status.codigo, count(s))
            from Solicitacao s
-           where (:inicio is null or s.dataSolicitacao >= :inicio)
-             and (:fim is null or s.dataSolicitacao < :fim)
+           where s.dataSolicitacao >= :inicio and s.dataSolicitacao < :fim
            group by s.status.codigo
            order by count(s) desc
            """)
@@ -41,8 +46,7 @@ public interface SolicitacaoRepository
            select new br.com.samuel.documentos_academicos.dto.response.ContagemTipoDocumentoResponse(
                   s.tipoDocumento.nome, count(s))
            from Solicitacao s
-           where (:inicio is null or s.dataSolicitacao >= :inicio)
-             and (:fim is null or s.dataSolicitacao < :fim)
+           where s.dataSolicitacao >= :inicio and s.dataSolicitacao < :fim
            group by s.tipoDocumento.nome
            order by count(s) desc
            """)
@@ -51,8 +55,7 @@ public interface SolicitacaoRepository
 
     @Query("""
            select count(s) from Solicitacao s
-           where (:inicio is null or s.dataSolicitacao >= :inicio)
-             and (:fim is null or s.dataSolicitacao < :fim)
+           where s.dataSolicitacao >= :inicio and s.dataSolicitacao < :fim
            """)
     long contarNoPeriodo(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
 
@@ -61,8 +64,7 @@ public interface SolicitacaoRepository
                   s.dataSolicitacao, s.dataEmissao)
            from Solicitacao s
            where s.dataEmissao is not null
-             and (:inicio is null or s.dataSolicitacao >= :inicio)
-             and (:fim is null or s.dataSolicitacao < :fim)
+             and s.dataSolicitacao >= :inicio and s.dataSolicitacao < :fim
            """)
     List<EmissaoIntervalo> intervalosEmissao(@Param("inicio") LocalDateTime inicio,
                                              @Param("fim") LocalDateTime fim);

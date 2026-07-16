@@ -14,6 +14,7 @@ import br.com.samuel.documentos_academicos.mapper.AlunoMapper;
 import br.com.samuel.documentos_academicos.repository.AlunoRepository;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.service.AlunoService;
+import br.com.samuel.documentos_academicos.specification.AlunoSpecification;
 
 @Service
 @Transactional(readOnly = true)
@@ -45,7 +46,8 @@ public class AlunoServiceImpl implements AlunoService {
 
     @Override
     public Page<AlunoResponse> listar(String nome, Boolean ativo, Pageable pageable) {
-        return alunoRepository.buscar(nome, ativo, pageable).map(alunoMapper::toResponse);
+        return alunoRepository.findAll(AlunoSpecification.comFiltros(nome, ativo), pageable)
+                .map(alunoMapper::toResponse);
     }
 
     @Override
