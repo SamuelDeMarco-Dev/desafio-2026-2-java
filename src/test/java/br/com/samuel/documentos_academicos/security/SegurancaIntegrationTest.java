@@ -44,6 +44,17 @@ class SegurancaIntegrationTest {
            .andExpect(jsonPath("$.erro").value("Não autenticado"));
     }
 
+    /**
+     * Rota inexistente é 404, não 500: o handler de Exception chegava a engolir o
+     * NoResourceFoundException do Spring e logava stack trace a cada 404.
+     */
+    @Test
+    void rotaInexistenteAutenticadaRetorna404() throws Exception {
+        mvc.perform(get("/api/naoexiste").header(HttpHeaders.AUTHORIZATION, bearer(Perfil.ADMIN)))
+           .andExpect(status().isNotFound())
+           .andExpect(jsonPath("$.erro").value("Recurso não encontrado"));
+    }
+
     @Test
     void loginEPublico() throws Exception {
         // body vazio -> 400 de validação prova que a requisição chegou ao controller

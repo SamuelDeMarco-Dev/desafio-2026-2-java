@@ -9,8 +9,10 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 > documento e status**, o **cadastro e a consulta de solicitações** (filtros
 > dinâmicos + paginação), os **indicadores do dashboard**, a **autenticação via
 > JWT com autorização por perfil**, o **fluxo de movimentação de status** e o
-> **histórico de movimentações**. Pendentes: CRUD de usuários via API, auditoria
-> e documentação OpenAPI. Veja o [Roadmap](#roadmap).
+> **histórico de movimentações**, a **auditoria de todas as entidades** (Hibernate
+> Envers) e a **documentação interativa** (Swagger / OpenAPI). Pendentes: CRUD de
+> usuários via API e testes de integração com Testcontainers. Veja o
+> [Roadmap](#roadmap).
 
 ---
 
@@ -24,8 +26,10 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 | Spring Boot | 3.5.16 | Framework base |
 | Spring Web | — | API REST |
 | Spring Data JPA | — | Persistência |
+| Hibernate Envers | — | Auditoria das entidades |
 | Spring Security | — | Autenticação e autorização |
 | jjwt | 0.12.6 | Geração e validação de tokens JWT |
+| springdoc-openapi | 2.8.9 | Documentação interativa (Swagger UI) |
 | Spring Boot Actuator | — | Health check / observabilidade |
 | Spring Boot Validation | — | Validação de dados |
 | PostgreSQL | 17 | Banco de dados (produção/dev) |
@@ -37,7 +41,6 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 
 ### Planejadas (ainda não implementadas)
 
-- OpenAPI / Swagger (documentação da API)
 - Testcontainers (testes de integração contra PostgreSQL real)
 
 ---
@@ -53,8 +56,9 @@ desafio-2026-2-java/
 │   ├── main/
 │   │   ├── java/br/com/samuel/documentos_academicos/
 │   │   │   ├── DocumentosAcademicosApplication.java   # bootstrap Spring Boot
-│   │   │   ├── config/                                # Clock, Security, bootstrap do admin
+│   │   │   ├── config/                                # Clock, Security, OpenAPI, bootstrap do admin
 │   │   │   ├── security/                              # JWT (service, filtro), usuário autenticado
+│   │   │   ├── audit/                                 # RevisionListener do Envers
 │   │   │   ├── controller/                            # endpoints REST
 │   │   │   ├── service/  (+ impl/)                    # regras de negócio
 │   │   │   ├── repository/                            # Spring Data JPA
@@ -73,7 +77,8 @@ desafio-2026-2-java/
 │   │           ├── V2__insert_initial_statuses.sql
 │   │           ├── V3__create_usuario_tables.sql
 │   │           ├── V4__add_version_to_solicitacao.sql
-│   │           └── V5__create_historico_status.sql
+│   │           ├── V5__create_historico_status.sql
+│   │           └── V6__create_audit_tables.sql
 │   └── test/
 │       ├── java/.../                                  # @WebMvcTest, @DataJpaTest, Mockito
 │       └── resources/application-test.properties      # perfil de teste (H2)
@@ -90,7 +95,12 @@ desafio-2026-2-java/
 
 O schema é versionado pelo Flyway: `V1` cria a estrutura inicial, `V2` popula os
 status do fluxo, `V3` cria as tabelas de usuário, `V4` adiciona o controle de
-concorrência na solicitação e `V5` cria o histórico de movimentações.
+concorrência na solicitação, `V5` cria o histórico de movimentações e `V6` cria
+as tabelas de auditoria.
+
+> Como o `ddl-auto` é `validate`, **o Flyway precisa criar até as tabelas do
+> Envers** — o Hibernate valida o schema de auditoria junto com o resto e não
+> sobe se faltar alguma coluna.
 
 ### Tabelas
 
@@ -104,6 +114,8 @@ concorrência na solicitação e `V5` cria o histórico de movimentações.
 | `usuario` | Usuários do sistema (`login` único, senha BCrypt, `codigo_responsavel` único) |
 | `usuario_perfil` | Perfis de cada usuário (`ADMIN`, `OPERADOR`, `CONSULTA`) |
 | `historico_status` | Movimentações de status (de → para, quando, por quem) |
+| `revinfo` | Uma linha por transação auditada (revisão, data, login do autor) |
+| `<tabela>_aud` | Versões de cada entidade auditada (7 tabelas) |
 
 A tabela `solicitacao` registra `data_solicitacao`, `data_alteracao`,
 `data_emissao` e `prioridade` (`URGENTE`, `ALTA` ou `NORMAL`, com constraint de
@@ -129,9 +141,33 @@ A `historico_status` é *append-only*: uma linha por movimentação, com
 
 ## API REST
 
-> Todos os endpoints exigem autenticação, exceto `POST /api/auth/login` e o
-> health check. Os corpos de request/response usam DTOs (nunca as entidades
-> diretamente) — nenhuma resposta expõe senha ou hash.
+> Todos os endpoints exigem autenticação, exceto `POST /api/auth/login`, o health
+> check e a documentação. Os corpos de request/response usam DTOs (nunca as
+> entidades diretamente) — nenhuma resposta expõe senha ou hash.
+
+### Documentação interativa (Swagger)
+
+Com a aplicação no ar em `dev`:
+
+| Recurso | URL |
+|---|---|
+| Swagger UI | `http://localhost:8080/swagger-ui.html` |
+| Documento OpenAPI (JSON) | `http://localhost:8080/v3/api-docs` |
+
+Para testar endpoints protegidos pela interface:
+
+1. Abra `POST /api/auth/login`, clique em **Try it out** e envie suas credenciais.
+2. Copie o valor de `token` da resposta.
+3. Clique em **Authorize** no topo da página, cole o token (**sem** o prefixo
+   `Bearer`) e confirme.
+
+Todas as operações têm descrição, e as respostas de erro apontam para o schema
+`ErroResponse` — não para o schema de sucesso. Um teste automatizado varre o
+documento e falha se algum endpoint ficar sem descrição.
+
+> **A documentação é desabilitada no perfil `prod`** (`springdoc.*.enabled=false`).
+> Um console interativo que ensina a autenticar e permite disparar requisições é
+> superfície de ataque desnecessária em produção; lá as duas URLs devolvem `404`.
 
 ### Autenticação — `/api/auth`
 
@@ -379,10 +415,63 @@ Todos os erros seguem um formato único, produzido por um
 | Validação de campos (`campos` preenchido) / JSON malformado | `400` |
 | Não autenticado, token ausente/inválido/expirado, credenciais inválidas | `401` |
 | Autenticado, mas sem permissão (perfil ou responsável incorreto) | `403` |
-| Recurso não encontrado | `404` |
+| Recurso não encontrado, ou rota inexistente | `404` |
 | Recurso duplicado (nome/código já existe) ou alteração concorrente | `409` |
 | Regra de negócio violada (ex.: exclusão bloqueada, transição inválida) | `422` |
 | Erro inesperado (sem *stack trace*, com código de correlação no log) | `500` |
+
+---
+
+## Auditoria
+
+Toda inclusão, alteração e exclusão das entidades principais é registrada pelo
+**Hibernate Envers**, com o usuário responsável e a data. Não há endpoint: a
+auditoria é um rastro técnico, consultado via SQL ou pela API `AuditReader` do
+Envers. Expor esse histórico via HTTP é uma decisão de produto com implicações
+próprias de segurança (quem pode ver o histórico de quem?) e ficou fora do escopo.
+
+**Entidades auditadas:** `Aluno`, `Curso`, `TipoDocumento`, `Status`,
+`Solicitacao` e `Usuario`.
+
+`HistoricoStatus` **não** é auditada: ela já é *append-only* e nunca sofre
+update, então auditá-la produziria um histórico do histórico. Note que as duas
+coisas não competem — o histórico da solicitação é memória **de negócio** ("por
+que esta solicitação foi reprovada"), a auditoria é rastro **técnico** ("quem
+renomeou aquele curso na terça").
+
+Como consultar o rastro de um aluno:
+
+```sql
+SELECT r.rev, r.usuario_login, to_timestamp(r.revtstmp/1000) AS quando,
+       a.id, a.nome, a.revtype
+FROM revinfo r JOIN aluno_aud a ON a.rev = r.rev
+ORDER BY r.rev;
+```
+
+```
+ rev | usuario_login |       quando        | id |           nome            | revtype
+-----+---------------+---------------------+----+---------------------------+---------
+   1 | administrador | 2026-07-16 23:59:37 |  3 | Aluno Auditoria           |       0
+   2 | administrador | 2026-07-16 23:59:37 |  3 | Aluno Auditoria Renomeado |       1
+   3 | administrador | 2026-07-16 23:59:37 |  3 | Aluno Auditoria Renomeado |       2
+```
+
+`revtype`: **0** = inclusão, **1** = alteração, **2** = exclusão. O `revtstmp` é
+epoch em milissegundos — daí o `to_timestamp` acima.
+
+Decisões que valem conhecer:
+
+- **A senha nunca é auditada** (`@NotAudited`). Sem isso, a `usuario_aud`
+  acumularia todo hash BCrypt que o usuário já teve — um passivo de segurança sem
+  contrapartida. O `version` da solicitação também fica de fora: é contador
+  interno de concorrência, só geraria ruído.
+- **A exclusão preserva os dados** (`store_data_at_delete=true`). Sem isso a
+  linha de DELETE guardaria apenas o id e nulos: você saberia que o registro
+  sumiu, mas não o que sumiu.
+- **Escritas fora de requisição são registradas como `sistema`** — o caso do
+  `AdminBootstrap` no startup, que roda sem usuário autenticado.
+- **Não há auditoria retroativa.** Registros criados antes da `V6` não têm
+  revisão; o Envers só enxerga o que passa por ele.
 
 ---
 
@@ -475,9 +564,22 @@ Os testes usam o perfil `test` com banco H2 em memória (Flyway desabilitado):
 ./mvnw test
 ```
 
-São **74 testes**, cobrindo controllers (`@WebMvcTest`), consultas e
-Specifications (`@DataJpaTest`), regras de negócio (Mockito) e a segurança
-ponta a ponta.
+São **86 testes**, cobrindo controllers (`@WebMvcTest`), consultas e
+Specifications (`@DataJpaTest`), regras de negócio (Mockito), a segurança ponta a
+ponta, a auditoria (`@SpringBootTest` + `TransactionTemplate`) e o contrato da
+documentação OpenAPI.
+
+Dois detalhes não óbvios da suíte:
+
+- **A auditoria não pode ser testada com `@DataJpaTest`.** Esse slice roda numa
+  transação que sofre *rollback*, e o Envers só grava as linhas de auditoria ao
+  encerrar a transação — o `AuditReader` devolveria zero revisões e daria a falsa
+  impressão de que o Envers está quebrado. Por isso o `AuditoriaEnversTest` usa
+  `TransactionTemplate`, commitando de verdade.
+- **O H2 de teste não roda em `MODE=PostgreSQL`.** Nesse modo ele rejeita
+  `TINYINT`, o tipo que o Hibernate emite para a coluna `revtype` do Envers, e as
+  tabelas de auditoria falhavam silenciosamente na criação. O modo também nunca
+  cumpriu a promessa de imitar o PostgreSQL — veja o aviso abaixo.
 
 > **Atenção:** o H2 é mais permissivo que o PostgreSQL. Já houve um bug que
 > passou por toda a suíte verde e só apareceu no banco real (nulos sem tipo
@@ -530,10 +632,12 @@ o status geral.
 - [x] Fluxo de movimentação de status (transições, responsável, datas)
 - [x] Histórico de movimentações (status anterior/novo, data, responsável)
 
+**Milestone 5 — Auditoria e documentação**
+- [x] Auditoria das entidades com Hibernate Envers (usuário e data por revisão)
+- [x] Documentação interativa com Springdoc / Swagger UI (JWT configurado)
+
 **Próximos milestones**
 - [ ] CRUD de usuários exposto via API
-- [ ] Auditoria (Hibernate Envers)
-- [ ] Documentação da API (OpenAPI / Swagger)
 - [ ] Testes de integração com Testcontainers (PostgreSQL real)
 
 ---

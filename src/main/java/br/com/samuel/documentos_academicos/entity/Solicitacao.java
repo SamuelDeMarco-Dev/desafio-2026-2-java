@@ -2,6 +2,9 @@ package br.com.samuel.documentos_academicos.entity;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+
 import br.com.samuel.documentos_academicos.enums.Prioridade;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -9,6 +12,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "solicitacao")
+@Audited
 @Getter @Setter
 public class Solicitacao {
     @Id
@@ -45,6 +49,7 @@ public class Solicitacao {
     private Prioridade prioridade = Prioridade.NORMAL;
 
     @Version
+    @NotAudited
     @Column(name = "version", nullable = false)
     private Long version;
 

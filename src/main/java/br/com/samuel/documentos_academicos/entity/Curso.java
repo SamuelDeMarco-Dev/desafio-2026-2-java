@@ -1,11 +1,14 @@
 package br.com.samuel.documentos_academicos.entity;
 
+import org.hibernate.envers.Audited;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "curso")
+@Audited
 @Getter @Setter
 public class Curso {
     @Id

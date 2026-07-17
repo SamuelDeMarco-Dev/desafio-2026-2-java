@@ -28,6 +28,15 @@ import br.com.samuel.documentos_academicos.security.SegurancaExceptionHandler;
 @EnableWebSecurity
 public class SegurancaConfig {
 
+    // Documentação interativa (springdoc). Desabilitada no perfil prod via properties.
+    private static final String[] ROTAS_DOCUMENTACAO = {
+            "/v3/api-docs",
+            "/v3/api-docs/**",      // inclui /v3/api-docs/swagger-config, buscado pela UI
+            "/v3/api-docs.yaml",
+            "/swagger-ui.html",     // redireciona para /swagger-ui/index.html
+            "/swagger-ui/**"
+    };
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -57,9 +66,10 @@ public class SegurancaConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // --- públicos (apenas estes dois) ---
+                        // --- públicos ---
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
+                        .requestMatchers(ROTAS_DOCUMENTACAO).permitAll()
 
                         // --- gerenciamento de status: administrativo ---
                         .requestMatchers(HttpMethod.POST, "/api/status/**").hasRole("ADMIN")

@@ -3,12 +3,15 @@ package br.com.samuel.documentos_academicos.entity;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.envers.Audited;
+
 import jakarta.persistence.*;
 import lombok.Setter;
 import lombok.Getter;
 
 @Entity
 @Table(name = "aluno")
+@Audited
 @Getter @Setter
 public class Aluno {
     @Id
