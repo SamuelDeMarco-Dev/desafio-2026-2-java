@@ -16,7 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import br.com.samuel.documentos_academicos.dto.response.EmissaoIntervalo;
+import br.com.samuel.documentos_academicos.dto.projection.IntervaloEmissao;
 import br.com.samuel.documentos_academicos.dto.response.TempoMedioEmissaoResponse;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.service.DashboardService;
@@ -42,8 +42,8 @@ class DashboardServiceImplTest {
     void tempoMedioConverteSegundosParaDiasFracionarios() {
         LocalDateTime pedido = LocalDateTime.of(2026, 7, 1, 0, 0);
         when(solicitacaoRepository.intervalosEmissao(any(), any())).thenReturn(List.of(
-                new EmissaoIntervalo(pedido, pedido.plusDays(2)),   // 2 dias
-                new EmissaoIntervalo(pedido, pedido.plusDays(3))));  // 3 dias
+                new IntervaloEmissao(pedido, pedido.plusDays(2)),   // 2 dias
+                new IntervaloEmissao(pedido, pedido.plusDays(3))));  // 3 dias
 
         TempoMedioEmissaoResponse resp = service.tempoMedioEmissao(null, null);
 
@@ -55,7 +55,7 @@ class DashboardServiceImplTest {
     void tempoMedioComMeioDiaNaoArredondaParaInteiro() {
         LocalDateTime pedido = LocalDateTime.of(2026, 7, 1, 0, 0);
         when(solicitacaoRepository.intervalosEmissao(any(), any()))
-                .thenReturn(List.of(new EmissaoIntervalo(pedido, pedido.plusHours(12))));
+                .thenReturn(List.of(new IntervaloEmissao(pedido, pedido.plusHours(12))));
 
         assertEquals(0.5, service.tempoMedioEmissao(null, null).diasMedios(), 0.0001);
     }

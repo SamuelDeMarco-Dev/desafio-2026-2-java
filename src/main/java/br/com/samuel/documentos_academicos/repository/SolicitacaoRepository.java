@@ -14,7 +14,7 @@ import org.springframework.data.repository.query.Param;
 
 import br.com.samuel.documentos_academicos.dto.response.ContagemStatusResponse;
 import br.com.samuel.documentos_academicos.dto.response.ContagemTipoDocumentoResponse;
-import br.com.samuel.documentos_academicos.dto.response.EmissaoIntervalo;
+import br.com.samuel.documentos_academicos.dto.projection.IntervaloEmissao;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 
 /*
@@ -76,12 +76,12 @@ public interface SolicitacaoRepository
     long contarNoPeriodo(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
 
     @Query("""
-           select new br.com.samuel.documentos_academicos.dto.response.EmissaoIntervalo(
+           select new br.com.samuel.documentos_academicos.dto.projection.IntervaloEmissao(
                   s.dataSolicitacao, s.dataEmissao)
            from Solicitacao s
            where s.dataEmissao is not null
              and s.dataSolicitacao >= :inicio and s.dataSolicitacao < :fim
            """)
-    List<EmissaoIntervalo> intervalosEmissao(@Param("inicio") LocalDateTime inicio,
+    List<IntervaloEmissao> intervalosEmissao(@Param("inicio") LocalDateTime inicio,
                                              @Param("fim") LocalDateTime fim);
 }
