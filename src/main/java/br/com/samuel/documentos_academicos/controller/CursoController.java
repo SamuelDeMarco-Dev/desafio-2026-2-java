@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,8 +22,11 @@ import br.com.samuel.documentos_academicos.dto.request.CursoRequest;
 import br.com.samuel.documentos_academicos.dto.response.CursoResponse;
 import br.com.samuel.documentos_academicos.dto.response.PageResponse;
 import br.com.samuel.documentos_academicos.service.CursoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
+@Tag(name = "Cursos", description = "Cadastro de cursos")
 @RestController
 @RequestMapping("/api/cursos")
 public class CursoController {
@@ -33,6 +37,8 @@ public class CursoController {
         this.cursoService = cursoService;
     }
 
+    @Operation(summary = "Cadastra um curso",
+               description = "Nome único; duplicado devolve 409. Exige perfil ADMIN.")
     @PostMapping
     public ResponseEntity<CursoResponse> criar(@Valid @RequestBody CursoRequest request,
                                                 UriComponentsBuilder uriBuilder) {
@@ -41,24 +47,31 @@ public class CursoController {
         return ResponseEntity.created(location).body(response);
     }   
 
+    @Operation(summary = "Lista cursos com paginação",
+               description = "Filtro `nome` (parcial, ignora caixa) é opcional.")
     @GetMapping
     public PageResponse<CursoResponse> listar(
         @RequestParam(required = false) String nome,
-        @PageableDefault(size = 20, sort = "nome") Pageable pageable){
+        @ParameterObject @PageableDefault(size = 20, sort = "nome") Pageable pageable){
     Page<CursoResponse> page = cursoService.listar(nome, pageable);
     return PageResponse.from(page);
     }   
 
-        @GetMapping("/{id}")
+    @Operation(summary = "Consulta um curso por id")
+    @GetMapping("/{id}")
     public CursoResponse buscar(@PathVariable Long id) {
         return cursoService.buscarPorId(id);
     }
 
+    @Operation(summary = "Atualiza o curso",
+               description = "Mantém a unicidade do nome. Exige perfil ADMIN.")
     @PutMapping("/{id}")
     public CursoResponse atualizar(@PathVariable Long id, @Valid @RequestBody CursoRequest request) {
         return cursoService.atualizar(id, request);
     }
 
+    @Operation(summary = "Exclui o curso",
+               description = "Bloqueado com 422 se vinculado a solicitações. Exige perfil ADMIN.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         cursoService.excluir(id);

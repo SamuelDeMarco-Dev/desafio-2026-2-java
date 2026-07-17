@@ -13,6 +13,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import br.com.samuel.documentos_academicos.dto.response.ErroResponse;
 import br.com.samuel.documentos_academicos.dto.response.ErroResponse.CampoErro;
@@ -56,6 +57,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErroResponse> handleJsonInvalido(HttpMessageNotReadableException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Requisição inválida",
                 "Corpo da requisição malformado ou ilegível", req, List.of());
+    }
+
+    /**
+     * Sem isto o handler de Exception abaixo captura o NoResourceFoundException e
+     * transforma todo path inexistente em 500 — com stack trace no log a cada
+     * requisição perdida.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErroResponse> handleRotaInexistente(NoResourceFoundException ex, HttpServletRequest req) {
+        return build(HttpStatus.NOT_FOUND, "Recurso não encontrado",
+                "Nenhum endpoint corresponde a " + req.getMethod() + " " + req.getRequestURI(), req, List.of());
     }
 
     @ExceptionHandler(Exception.class)
