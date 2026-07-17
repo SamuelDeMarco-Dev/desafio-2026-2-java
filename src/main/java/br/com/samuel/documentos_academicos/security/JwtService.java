@@ -15,8 +15,14 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
+/**
+ * Final de propósito: o construtor lança exceção quando a chave é curta demais
+ * (fail-fast do JWT_SECRET), e um construtor que lança deixa o objeto
+ * parcialmente construído ao alcance de um finalizer attack via subclasse.
+ * Sendo final, a classe não pode ser estendida e o ataque não existe.
+ */
 @Component
-public class JwtService {
+public final class JwtService {
 
     private final SecretKey chave;
     private final long expiracaoSegundos;

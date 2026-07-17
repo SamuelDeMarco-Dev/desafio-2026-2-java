@@ -41,7 +41,9 @@ public class StatusServiceImpl implements StatusService {
             throw new RecursoDuplicadoException("Já existe um status com o código '" + request.codigo() + "'");
         }
         validarConsistenciaFinalizacao(request.codigo(), request.finalizaSolicitacao());
-        // TODO Issue 16: validar que 'responsavel' corresponde a um usuário ativo
+        // Lacuna conhecida: 'responsavel' aceita qualquer código, sem verificar se
+        // existe um usuário ativo com ele. Um código órfão trava a movimentação
+        // do status para todos. Exige issue própria — é regra nova, não refatoração.
         Status status = statusMapper.toEntity(request);
         return statusMapper.toResponse(statusRepository.save(status));
     }
@@ -81,7 +83,7 @@ public class StatusServiceImpl implements StatusService {
             status.setCodigo(request.codigo());
             status.setFinalizaSolicitacao(Boolean.TRUE.equals(request.finalizaSolicitacao()));
         }
-        // TODO Issue 16: validar 'responsavel' como usuário ativo
+        // Mesma lacuna do criar(): 'responsavel' não é validado contra usuário ativo.
         status.setNome(request.nome());
         status.setResponsavel(request.responsavel());
         return statusMapper.toResponse(statusRepository.save(status));

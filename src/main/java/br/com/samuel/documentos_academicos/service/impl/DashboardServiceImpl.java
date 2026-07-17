@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.samuel.documentos_academicos.dto.response.ContagemStatusResponse;
 import br.com.samuel.documentos_academicos.dto.response.ContagemTipoDocumentoResponse;
 import br.com.samuel.documentos_academicos.dto.response.DashboardResumoResponse;
-import br.com.samuel.documentos_academicos.dto.response.EmissaoIntervalo;
+import br.com.samuel.documentos_academicos.dto.projection.IntervaloEmissao;
 import br.com.samuel.documentos_academicos.dto.response.TempoMedioEmissaoResponse;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.service.DashboardService;
@@ -46,7 +46,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     public TempoMedioEmissaoResponse tempoMedioEmissao(LocalDate inicio, LocalDate fim) {
-        List<EmissaoIntervalo> intervalos = solicitacaoRepository.intervalosEmissao(inicioDe(inicio), fimDe(fim));
+        List<IntervaloEmissao> intervalos = solicitacaoRepository.intervalosEmissao(inicioDe(inicio), fimDe(fim));
         double diasMedios = intervalos.stream()
                 .mapToLong(i -> Duration.between(i.dataSolicitacao(), i.dataEmissao()).toSeconds())
                 .average()

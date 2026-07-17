@@ -10,8 +10,9 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 > dinâmicos + paginação), os **indicadores do dashboard**, a **autenticação via
 > JWT com autorização por perfil**, o **fluxo de movimentação de status** e o
 > **histórico de movimentações**, a **auditoria de todas as entidades** (Hibernate
-> Envers) e a **documentação interativa** (Swagger / OpenAPI). Pendentes: CRUD de
-> usuários via API e testes de integração com Testcontainers. Veja o
+> Envers), a **documentação interativa** (Swagger / OpenAPI) e a bateria de
+> **testes unitários + integração com PostgreSQL real** (Testcontainers), com
+> análise estática no build. Pendente: CRUD de usuários via API. Veja o
 > [Roadmap](#roadmap).
 
 ---
@@ -34,14 +35,12 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 | Spring Boot Validation | — | Validação de dados |
 | PostgreSQL | 17 | Banco de dados (produção/dev) |
 | Flyway | — | Versionamento do banco (migrations) |
-| H2 | — | Banco em memória (testes) |
+| H2 | — | Banco em memória (testes unitários) |
+| Testcontainers | — | PostgreSQL real nos testes de integração |
+| SpotBugs | 4.8.6.6 | Análise estática (roda no `verify`) |
 | Lombok | — | Redução de boilerplate nas entidades |
 | Maven | — | Build e dependências |
 | Docker / Docker Compose | — | Containerização e orquestração |
-
-### Planejadas (ainda não implementadas)
-
-- Testcontainers (testes de integração contra PostgreSQL real)
 
 ---
 
@@ -65,7 +64,8 @@ desafio-2026-2-java/
 │   │   │   ├── specification/                         # consultas dinâmicas (Criteria)
 │   │   │   ├── entity/                                # entidades JPA
 │   │   │   ├── enums/                                 # Prioridade, CodigoStatus, Perfil
-│   │   │   ├── dto/  (request/ e response/)           # contratos da API (records)
+│   │   │   ├── dto/  (request/, response/)            # contratos da API (records)
+│   │   │   │   └── projection/                        # projeções de consulta (não são API)
 │   │   │   ├── mapper/                                # entidade <-> DTO
 │   │   │   └── exception/                             # exceções + RestControllerAdvice
 │   │   └── resources/
@@ -480,11 +480,14 @@ Decisões que valem conhecer:
 | Perfil | Banco | `ddl-auto` | Flyway | Uso |
 |---|---|---|---|---|
 | `dev` | PostgreSQL | `validate` | habilitado | Desenvolvimento (padrão) |
-| `prod` | PostgreSQL | `validate` | habilitado | Produção |
-| `test` | H2 (em memória) | `create-drop` | desabilitado | Testes automatizados |
+| `prod` | PostgreSQL | `validate` | habilitado | Produção; Swagger desligado |
+| `test` | H2 (em memória) | `create-drop` | desabilitado | Testes unitários (`./mvnw test`) |
+| `it` | PostgreSQL (Testcontainers) | `validate` | habilitado | Testes de integração (`./mvnw verify`) |
 
-Em `dev` e `prod`, o Hibernate apenas **valida** o schema contra o banco — quem
-cria e evolui a estrutura é exclusivamente o Flyway.
+Em `dev`, `prod` e `it`, o Hibernate apenas **valida** o schema contra o banco —
+quem cria e evolui a estrutura é exclusivamente o Flyway. O perfil `it` existe
+justamente para que essa combinação seja exercitada por teste, e não só quando a
+aplicação sobe: é ela que pega uma migration divergente das entidades.
 
 ---
 
@@ -558,18 +561,32 @@ Requer um PostgreSQL rodando e acessível via `DB_URL`, além de Java 21.
 
 ## Testes
 
-Os testes usam o perfil `test` com banco H2 em memória (Flyway desabilitado):
+A suíte tem dois níveis, separados por fase do Maven:
 
 ```bash
-./mvnw test
+./mvnw test      # 92 testes unitários (rápidos, sem Docker)
+./mvnw verify    # os 92 + 16 de integração (PostgreSQL real) + análise estática
 ```
 
-São **86 testes**, cobrindo controllers (`@WebMvcTest`), consultas e
-Specifications (`@DataJpaTest`), regras de negócio (Mockito), a segurança ponta a
-ponta, a auditoria (`@SpringBootTest` + `TransactionTemplate`) e o contrato da
-documentação OpenAPI.
+| Nível | Onde | Como |
+|---|---|---|
+| Unitário | `src/test/.../service`, `mapper`, `specification` | Mockito puro; regras de negócio **sem banco** |
+| Fatia web | `...ControllerTest` | `@WebMvcTest` + `@MockitoBean` |
+| Consulta | `...QueriesTest`, `...RepositoryTest` | `@DataJpaTest` + H2 |
+| Integração | `src/test/.../integracao/*IT` | `@SpringBootTest` + Testcontainers (PostgreSQL 17) |
 
-Dois detalhes não óbvios da suíte:
+### Testes de integração (Testcontainers)
+
+Sobem um **PostgreSQL 17 real**, na mesma versão da produção. O perfil `it` liga o
+Flyway e mantém `ddl-auto=validate` — cada execução prova que as migrations
+`V1..V6` constroem um schema compatível com as entidades. **Exigem Docker no ar.**
+
+> **`*IT` roda no `verify`, nunca no `package` — e isso é proposital.** O
+> `Dockerfile` executa `mvnw clean package` dentro de um container **sem acesso ao
+> daemon do Docker**; se os testes de integração rodassem nessa fase, o
+> Testcontainers não teria onde subir o banco e o build da imagem quebraria.
+
+### Detalhes não óbvios da suíte
 
 - **A auditoria não pode ser testada com `@DataJpaTest`.** Esse slice roda numa
   transação que sofre *rollback*, e o Envers só grava as linhas de auditoria ao
@@ -578,13 +595,37 @@ Dois detalhes não óbvios da suíte:
   `TransactionTemplate`, commitando de verdade.
 - **O H2 de teste não roda em `MODE=PostgreSQL`.** Nesse modo ele rejeita
   `TINYINT`, o tipo que o Hibernate emite para a coluna `revtype` do Envers, e as
-  tabelas de auditoria falhavam silenciosamente na criação. O modo também nunca
-  cumpriu a promessa de imitar o PostgreSQL — veja o aviso abaixo.
+  tabelas de auditoria falhavam silenciosamente na criação.
+- **O N+1 é verificado por contagem de consultas**, não por inspeção visual. O
+  `ConsultasNMaisUmIT` lê o `Statistics` do Hibernate e falha se alguém remover os
+  `@EntityGraph` do `SolicitacaoRepository` (a listagem passaria de ~3 para ~22
+  consultas por página).
+- **Toda operação da API precisa ter descrição.** O `OpenApiDocsTest` varre o
+  documento OpenAPI e falha listando os endpoints sem `summary`.
 
-> **Atenção:** o H2 é mais permissivo que o PostgreSQL. Já houve um bug que
-> passou por toda a suíte verde e só apareceu no banco real (nulos sem tipo
-> enviados como `bytea`). Validar no Docker antes de abrir PR não é opcional —
-> é o que a migração para Testcontainers vem resolver.
+> **Atenção:** o H2 é mais permissivo que o PostgreSQL. Já houve um bug que passou
+> por toda a suíte verde e só apareceu no banco real (nulos sem tipo enviados como
+> `bytea`). Os testes de integração existem por causa dele — mas eles cobrem o
+> fluxo principal, não tudo: validar no Docker antes de abrir PR continua valendo.
+
+---
+
+## Análise estática
+
+O **SpotBugs** roda no `verify` e falha o build em achados de prioridade alta ou
+média:
+
+```bash
+./mvnw verify          # inclui a análise
+./mvnw spotbugs:check  # só a análise
+```
+
+As exclusões ficam em [`spotbugs-exclude.xml`](spotbugs-exclude.xml), e **cada uma
+tem justificativa escrita** — um filtro sem motivo é ruído acumulado, e o objetivo
+da análise é não ter alerta ignorado sem que alguém tenha decidido ignorá-lo.
+
+Assim como os testes de integração, a análise fica fora do `package` para não
+atrasar o build da imagem Docker.
 
 ---
 
@@ -636,9 +677,14 @@ o status geral.
 - [x] Auditoria das entidades com Hibernate Envers (usuário e data por revisão)
 - [x] Documentação interativa com Springdoc / Swagger UI (JWT configurado)
 
-**Próximos milestones**
+**Milestone 6 — Qualidade**
+- [x] Testes unitários das regras críticas, independentes de banco
+- [x] Testes de integração com PostgreSQL real (Testcontainers + migrations)
+- [x] Refatoração: responsabilidades, N+1 corrigido e medido, análise estática
+
+**Próximos**
 - [ ] CRUD de usuários exposto via API
-- [ ] Testes de integração com Testcontainers (PostgreSQL real)
+- [ ] Validar `responsavel` do status contra usuário ativo (lacuna conhecida)
 
 ---
 

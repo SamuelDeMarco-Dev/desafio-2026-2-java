@@ -18,7 +18,6 @@ import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResponse;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResumoResponse;
 import br.com.samuel.documentos_academicos.entity.Aluno;
 import br.com.samuel.documentos_academicos.entity.Curso;
-import br.com.samuel.documentos_academicos.entity.HistoricoStatus;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 import br.com.samuel.documentos_academicos.entity.Status;
 import br.com.samuel.documentos_academicos.entity.TipoDocumento;
@@ -30,15 +29,14 @@ import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoExcepti
 import br.com.samuel.documentos_academicos.exception.RegraNegocioException;
 import br.com.samuel.documentos_academicos.exception.ResponsavelInvalidoException;
 import br.com.samuel.documentos_academicos.exception.TransicaoStatusInvalidaException;
-import br.com.samuel.documentos_academicos.mapper.HistoricoStatusMapper;
 import br.com.samuel.documentos_academicos.mapper.SolicitacaoMapper;
 import br.com.samuel.documentos_academicos.repository.AlunoRepository;
 import br.com.samuel.documentos_academicos.repository.CursoRepository;
-import br.com.samuel.documentos_academicos.repository.HistoricoStatusRepository;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.repository.StatusRepository;
 import br.com.samuel.documentos_academicos.repository.TipoDocumentoRepository;
 import br.com.samuel.documentos_academicos.security.UsuarioAutenticadoProvider;
+import br.com.samuel.documentos_academicos.service.HistoricoStatusRegistrador;
 import br.com.samuel.documentos_academicos.service.SolicitacaoService;
 import br.com.samuel.documentos_academicos.specification.SolicitacaoSpecification;
 
@@ -51,9 +49,8 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final StatusRepository statusRepository;
     private final SolicitacaoRepository solicitacaoRepository;
-    private final HistoricoStatusRepository historicoStatusRepository;
     private final SolicitacaoMapper solicitacaoMapper;
-    private final HistoricoStatusMapper historicoStatusMapper;
+    private final HistoricoStatusRegistrador historicoStatusRegistrador;
     private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
     private final Clock clock;
 
@@ -62,9 +59,8 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
                                   TipoDocumentoRepository tipoDocumentoRepository,
                                   StatusRepository statusRepository,
                                   SolicitacaoRepository solicitacaoRepository,
-                                  HistoricoStatusRepository historicoStatusRepository,
                                   SolicitacaoMapper solicitacaoMapper,
-                                  HistoricoStatusMapper historicoStatusMapper,
+                                  HistoricoStatusRegistrador historicoStatusRegistrador,
                                   UsuarioAutenticadoProvider usuarioAutenticadoProvider,
                                   Clock clock) {
         this.alunoRepository = alunoRepository;
@@ -72,9 +68,8 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.statusRepository = statusRepository;
         this.solicitacaoRepository = solicitacaoRepository;
-        this.historicoStatusRepository = historicoStatusRepository;
         this.solicitacaoMapper = solicitacaoMapper;
-        this.historicoStatusMapper = historicoStatusMapper;
+        this.historicoStatusRegistrador = historicoStatusRegistrador;
         this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
         this.clock = clock;
     }
@@ -116,108 +111,97 @@ public class SolicitacaoServiceImpl implements SolicitacaoService {
         // dataEmissao permanece null até a emissão (Issue 19)
 
         Solicitacao salva = solicitacaoRepository.save(solicitacao);
-        registrar(salva, null, statusInicial, autenticado, agora); // anterior null = abertura
+        historicoStatusRegistrador.registrarAbertura(salva, statusInicial, autenticado, agora);
         return solicitacaoMapper.toResponse(salva);
     }
 
 @Override
-public SolicitacaoResponse buscarPorId(Long id) {
-    Solicitacao solicitacao = solicitacaoRepository.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException(
-                    "Solicitação " + id + " não encontrada"));
-    return solicitacaoMapper.toResponse(solicitacao);
-}
-
-@Override
-public Page<SolicitacaoResumoResponse> listar(SolicitacaoFiltro filtro, Pageable pageable) {
-    return solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(filtro), pageable)
-            .map(solicitacaoMapper::toResumo);
-}
-
-@Override
-public Page<SolicitacaoResumoResponse> listarPorAluno(Long alunoId, Pageable pageable) {
-    if (!alunoRepository.existsById(alunoId)) {
-        throw new RecursoNaoEncontradoException("Aluno " + alunoId + " não encontrado");
-    }
-    return solicitacaoRepository.findByAlunoId(alunoId, pageable)
-            .map(solicitacaoMapper::toResumo);
-}
-
-@Override
-@Transactional
-public SolicitacaoResponse alterarStatus(Long id, AlteracaoStatusRequest request) {
-    Solicitacao solicitacao = solicitacaoRepository.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação " + id + " não encontrada"));
-    Status destino = statusRepository.findById(request.statusId())
-            .orElseThrow(() -> new RecursoNaoEncontradoException(
-                    "Status " + request.statusId() + " não encontrado"));
-
-    Usuario autenticado = usuarioAutenticadoProvider.obter();
-
-    // 1) o código informado tem que ser o do próprio usuário autenticado
-    if (!Objects.equals(request.codigoResponsavel(), autenticado.getCodigoResponsavel())) {
-        throw new ResponsavelInvalidoException(
-                "O código de responsável informado não corresponde ao usuário autenticado");
+    public SolicitacaoResponse buscarPorId(Long id) {
+        Solicitacao solicitacao = solicitacaoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Solicitação " + id + " não encontrada"));
+        return solicitacaoMapper.toResponse(solicitacao);
     }
 
-    // 2) solicitação finalizada não se movimenta
-    Status atual = solicitacao.getStatus();
-    if (atual.isFinalizaSolicitacao()) {
-        throw new RegraNegocioException(
-                "Solicitação finalizada em '" + atual.getCodigo() + "' não pode ser movimentada");
+    @Override
+    public Page<SolicitacaoResumoResponse> listar(SolicitacaoFiltro filtro, Pageable pageable) {
+        return solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(filtro), pageable)
+                .map(solicitacaoMapper::toResumo);
     }
 
-    // 3) a transição precisa estar prevista no fluxo
-    CodigoStatus origem = CodigoStatus.porCodigo(atual.getCodigo())
-            .orElseThrow(() -> new RegraNegocioException("Status atual não pertence ao fluxo"));
-    CodigoStatus alvo = CodigoStatus.porCodigo(destino.getCodigo())
-            .orElseThrow(() -> new TransicaoStatusInvalidaException(
-                    "Status de destino não pertence ao fluxo"));
-    if (!origem.permiteTransicaoPara(alvo)) {
-        throw new TransicaoStatusInvalidaException(
-                "A transição de " + origem + " para " + alvo + " não é permitida");
+    @Override
+    public Page<SolicitacaoResumoResponse> listarPorAluno(Long alunoId, Pageable pageable) {
+        if (!alunoRepository.existsById(alunoId)) {
+            throw new RecursoNaoEncontradoException("Aluno " + alunoId + " não encontrado");
+        }
+        return solicitacaoRepository.findByAlunoId(alunoId, pageable)
+                .map(solicitacaoMapper::toResumo);
     }
 
-    // 4) quando o status tem responsável definido, só ele movimenta
-    if (destino.getResponsavel() != null
-            && !Objects.equals(destino.getResponsavel(), autenticado.getCodigoResponsavel())) {
-        throw new ResponsavelInvalidoException(
-                "Apenas o responsável pelo status '" + destino.getCodigo() + "' pode realizar esta movimentação");
+    @Override
+    @Transactional
+    public SolicitacaoResponse alterarStatus(Long id, AlteracaoStatusRequest request) {
+        Solicitacao solicitacao = solicitacaoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Solicitação " + id + " não encontrada"));
+        Status destino = statusRepository.findById(request.statusId())
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Status " + request.statusId() + " não encontrado"));
+
+        Usuario autenticado = usuarioAutenticadoProvider.obter();
+
+        // 1) o código informado tem que ser o do próprio usuário autenticado
+        if (!Objects.equals(request.codigoResponsavel(), autenticado.getCodigoResponsavel())) {
+            throw new ResponsavelInvalidoException(
+                    "O código de responsável informado não corresponde ao usuário autenticado");
+        }
+
+        // 2) solicitação finalizada não se movimenta
+        Status atual = solicitacao.getStatus();
+        if (atual.isFinalizaSolicitacao()) {
+            throw new RegraNegocioException(
+                    "Solicitação finalizada em '" + atual.getCodigo() + "' não pode ser movimentada");
+        }
+
+        // 3) a transição precisa estar prevista no fluxo
+        CodigoStatus origem = CodigoStatus.porCodigo(atual.getCodigo())
+                .orElseThrow(() -> new RegraNegocioException("Status atual não pertence ao fluxo"));
+        CodigoStatus alvo = CodigoStatus.porCodigo(destino.getCodigo())
+                .orElseThrow(() -> new TransicaoStatusInvalidaException(
+                        "Status de destino não pertence ao fluxo"));
+        if (!origem.permiteTransicaoPara(alvo)) {
+            throw new TransicaoStatusInvalidaException(
+                    "A transição de " + origem + " para " + alvo + " não é permitida");
+        }
+
+        // 4) quando o status tem responsável definido, só ele movimenta
+        if (destino.getResponsavel() != null
+                && !Objects.equals(destino.getResponsavel(), autenticado.getCodigoResponsavel())) {
+            throw new ResponsavelInvalidoException(
+                    "Apenas o responsável pelo status '" + destino.getCodigo() + "' pode realizar esta movimentação");
+        }
+
+        // 5) aplica
+        LocalDateTime agora = LocalDateTime.now(clock);
+        solicitacao.setStatus(destino);
+        solicitacao.setDataAlteracao(agora);
+        if (alvo == CodigoStatus.EMITIDA) {
+            solicitacao.setDataEmissao(agora);   // REPROVADA mantém dataEmissao nula
+        }
+
+        Solicitacao salva = solicitacaoRepository.save(solicitacao);
+        historicoStatusRegistrador.registrarMovimentacao(salva, atual, destino, autenticado, agora);
+        return solicitacaoMapper.toResponse(salva);
     }
 
-    // 5) aplica
-    LocalDateTime agora = LocalDateTime.now(clock);
-    solicitacao.setStatus(destino);
-    solicitacao.setDataAlteracao(agora);
-    if (alvo == CodigoStatus.EMITIDA) {
-        solicitacao.setDataEmissao(agora);   // REPROVADA mantém dataEmissao nula
+    @Override
+    public List<HistoricoStatusResponse> historico(Long solicitacaoId) {
+        if (!solicitacaoRepository.existsById(solicitacaoId)) {
+            throw new RecursoNaoEncontradoException("Solicitação " + solicitacaoId + " não encontrada");
+        }
+        return historicoStatusRegistrador.doSolicitacao(solicitacaoId);
     }
 
-    Solicitacao salva = solicitacaoRepository.save(solicitacao);
-    registrar(salva, atual, destino, autenticado, agora);
-    return solicitacaoMapper.toResponse(salva);
-}
 
-@Override
-public List<HistoricoStatusResponse> historico(Long solicitacaoId) {
-    if (!solicitacaoRepository.existsById(solicitacaoId)) {
-        throw new RecursoNaoEncontradoException("Solicitação " + solicitacaoId + " não encontrada");
-    }
-    return historicoStatusRepository
-            .findBySolicitacaoIdOrderByDataMovimentacaoAscIdAsc(solicitacaoId)
-            .stream().map(historicoStatusMapper::toResponse).toList();
-}
-
-private void registrar(Solicitacao solicitacao, Status anterior, Status novo,
-                       Usuario usuario, LocalDateTime quando) {
-    HistoricoStatus h = new HistoricoStatus();
-    h.setSolicitacao(solicitacao);
-    h.setStatusAnterior(anterior);
-    h.setStatusNovo(novo);
-    h.setUsuario(usuario);
-    h.setDataMovimentacao(quando);
-    historicoStatusRepository.save(h);
-}
 
 
 }
