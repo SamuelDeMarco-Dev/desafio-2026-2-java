@@ -3,6 +3,9 @@ package br.com.samuel.documentos_academicos.entity;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.hibernate.envers.Audited;
+import org.hibernate.envers.NotAudited;
+
 import br.com.samuel.documentos_academicos.enums.Perfil;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -10,6 +13,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "usuario")
+@Audited
 @Getter @Setter
 public class Usuario {
 
@@ -24,6 +28,7 @@ public class Usuario {
     private String login;
 
     /** Sempre o hash BCrypt — nunca a senha em texto puro. */
+    @NotAudited
     @Column(name = "senha", nullable = false, length = 100)
     private String senha;
 
