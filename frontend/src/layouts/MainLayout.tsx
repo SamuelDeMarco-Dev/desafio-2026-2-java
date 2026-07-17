@@ -1,6 +1,15 @@
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export function MainLayout() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  function aoSair() {
+    logout();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -8,6 +17,9 @@ export function MainLayout() {
         <nav>
           <Link to="/">Início</Link>
         </nav>
+        <button type="button" onClick={aoSair}>
+          Sair
+        </button>
       </header>
 
       <main className="app-content">
