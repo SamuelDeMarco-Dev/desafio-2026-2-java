@@ -1,9 +1,17 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { login as autenticar, type Credenciais } from "./authApi";
+import { decodeJwt, type ClaimsToken } from "./jwt";
 import { lerSessao, limparSessao, salvarSessao, sessaoExpirada } from "./tokenStorage";
+
+export interface UsuarioAutenticado {
+  login: string;
+  codigoResponsavel: number;
+  perfis: string[];
+}
 
 interface AuthContextValue {
   token: string | null;
+  usuario: UsuarioAutenticado | null;
   isAuthenticated: boolean;
   login: (credenciais: Credenciais) => Promise<void>;
   logout: () => void;
@@ -24,8 +32,16 @@ function tokenValidoArmazenado(): string | null {
   return sessao.token;
 }
 
+function paraUsuario(claims: ClaimsToken | null): UsuarioAutenticado | null {
+  if (!claims) {
+    return null;
+  }
+  return { login: claims.sub, codigoResponsavel: claims.responsavel, perfis: claims.roles };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => tokenValidoArmazenado());
+  const usuario = useMemo(() => paraUsuario(token ? decodeJwt(token) : null), [token]);
 
   // Sincroniza entre abas: se uma aba faz logout, as outras percebem via o evento "storage".
   useEffect(() => {
@@ -48,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated: token !== null, login, logout }}>
+    <AuthContext.Provider value={{ token, usuario, isAuthenticated: token !== null, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

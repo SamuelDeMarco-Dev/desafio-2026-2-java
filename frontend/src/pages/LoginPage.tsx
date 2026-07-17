@@ -62,7 +62,7 @@ export function LoginPage() {
         />
 
         {erro && (
-          <p role="alert" className="login-erro">
+          <p role="alert" className="erro-banner">
             {erro}
           </p>
         )}

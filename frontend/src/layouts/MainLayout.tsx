@@ -16,6 +16,7 @@ export function MainLayout() {
         <strong>Documentos Acadêmicos</strong>
         <nav>
           <Link to="/">Início</Link>
+          <Link to="/solicitacoes">Solicitações</Link>
         </nav>
         <button type="button" onClick={aoSair}>
           Sair

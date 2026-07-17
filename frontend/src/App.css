@@ -1,81 +1,109 @@
-.app-shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.app-header {
+.page-header {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
-.app-header nav {
-  display: flex;
-  gap: 16px;
-  flex: 1;
-}
-
-.app-header a {
-  color: var(--text);
+.botao-primario {
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
   text-decoration: none;
-
-  &:hover {
-    color: var(--accent);
-  }
+  font-size: 14px;
 }
 
-.app-header button {
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filtros input,
+.filtros select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+}
+
+.filtros button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: inherit;
   cursor: pointer;
 }
 
-.app-content {
-  flex: 1;
-  padding: 24px;
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
 }
 
-.login-page {
-  min-height: 100vh;
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabela th {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.paginacao {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 24px;
+  gap: 12px;
 }
 
-.login-form {
+.paginacao button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: inherit;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.formulario,
+.formulario-status {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  max-width: 320px;
-  padding: 32px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  gap: 8px;
+  max-width: 420px;
 }
 
-.login-form label {
+.formulario label,
+.formulario-status label {
   font-size: 14px;
   color: var(--text-h);
 }
 
-.login-form input {
+.formulario select,
+.formulario-status select {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
   font: inherit;
   color: inherit;
   background: var(--bg);
-
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
-  }
 }
 
-.login-form button {
+.formulario button,
+.formulario-status button {
   margin-top: 8px;
   padding: 10px;
   border: none;
@@ -84,6 +112,7 @@
   color: #fff;
   font: inherit;
   cursor: pointer;
+  align-self: flex-start;
 
   &:disabled {
     opacity: 0.6;
@@ -91,8 +120,24 @@
   }
 }
 
-.login-erro {
+.detalhe {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin-bottom: 24px;
+}
+
+.detalhe dt {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.detalhe dd {
   margin: 0;
+  color: var(--text-h);
+}
+
+.erro-banner {
   padding: 8px 10px;
   border-radius: 4px;
   background: rgba(220, 38, 38, 0.1);
