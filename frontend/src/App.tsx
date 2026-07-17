@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { MainLayout } from "./layouts/MainLayout";
-import { HomePage } from "./pages/HomePage";
+import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { NovaSolicitacaoPage } from "./pages/solicitacoes/NovaSolicitacaoPage";
@@ -15,7 +15,7 @@ export function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<MainLayout />}>
-          <Route index element={<HomePage />} />
+          <Route index element={<DashboardPage />} />
           <Route path="solicitacoes" element={<SolicitacoesListPage />} />
           <Route path="solicitacoes/nova" element={<NovaSolicitacaoPage />} />
           <Route path="solicitacoes/:id" element={<SolicitacaoDetalhePage />} />
