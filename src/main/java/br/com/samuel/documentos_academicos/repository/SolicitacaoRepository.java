@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -29,6 +31,20 @@ public interface SolicitacaoRepository
     boolean existsByTipoDocumentoId(Long tipoDocumentoId);
     boolean existsByStatusId(Long statusId);
 
+    /*
+     * O resumo da listagem lê nome do aluno, do curso, do tipo e o código do
+     * status — todos @ManyToOne(LAZY). Sem carregar o grafo junto, cada linha da
+     * página dispara quatro selects extras (N+1). O ConsultasNMaisUmIT conta as
+     * consultas e falha se alguém remover estas anotações.
+     *
+     * O fetch conjunto é seguro com paginação aqui porque são todas relações
+     * *-to-one: não multiplicam linhas, então o banco continua paginando.
+     */
+    @Override
+    @EntityGraph(attributePaths = {"aluno", "curso", "tipoDocumento", "status"})
+    Page<Solicitacao> findAll(Specification<Solicitacao> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"aluno", "curso", "tipoDocumento", "status"})
     Page<Solicitacao> findByAlunoId(Long alunoId, Pageable pageable);
 
     @Query("""

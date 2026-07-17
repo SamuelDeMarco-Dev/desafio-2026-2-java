@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -29,7 +30,6 @@ import br.com.samuel.documentos_academicos.dto.request.SolicitacaoCreateRequest;
 import br.com.samuel.documentos_academicos.dto.response.SolicitacaoResponse;
 import br.com.samuel.documentos_academicos.entity.Aluno;
 import br.com.samuel.documentos_academicos.entity.Curso;
-import br.com.samuel.documentos_academicos.entity.HistoricoStatus;
 import br.com.samuel.documentos_academicos.entity.Solicitacao;
 import br.com.samuel.documentos_academicos.entity.Status;
 import br.com.samuel.documentos_academicos.entity.TipoDocumento;
@@ -40,15 +40,14 @@ import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoExcepti
 import br.com.samuel.documentos_academicos.exception.RegraNegocioException;
 import br.com.samuel.documentos_academicos.exception.ResponsavelInvalidoException;
 import br.com.samuel.documentos_academicos.exception.TransicaoStatusInvalidaException;
-import br.com.samuel.documentos_academicos.mapper.HistoricoStatusMapper;
 import br.com.samuel.documentos_academicos.mapper.SolicitacaoMapper;
 import br.com.samuel.documentos_academicos.repository.AlunoRepository;
 import br.com.samuel.documentos_academicos.repository.CursoRepository;
-import br.com.samuel.documentos_academicos.repository.HistoricoStatusRepository;
 import br.com.samuel.documentos_academicos.repository.SolicitacaoRepository;
 import br.com.samuel.documentos_academicos.repository.StatusRepository;
 import br.com.samuel.documentos_academicos.repository.TipoDocumentoRepository;
 import br.com.samuel.documentos_academicos.security.UsuarioAutenticadoProvider;
+import br.com.samuel.documentos_academicos.service.HistoricoStatusRegistrador;
 import br.com.samuel.documentos_academicos.service.SolicitacaoService;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +60,7 @@ class SolicitacaoServiceImplTest {
     @Mock TipoDocumentoRepository tipoDocumentoRepository;
     @Mock StatusRepository statusRepository;
     @Mock SolicitacaoRepository solicitacaoRepository;
-    @Mock HistoricoStatusRepository historicoStatusRepository;
+    @Mock HistoricoStatusRegistrador historicoStatusRegistrador;
     @Mock UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
     SolicitacaoService service;
@@ -70,9 +69,8 @@ class SolicitacaoServiceImplTest {
     @BeforeEach
     void setup() {
         service = new SolicitacaoServiceImpl(alunoRepository, cursoRepository, tipoDocumentoRepository,
-                statusRepository, solicitacaoRepository, historicoStatusRepository,
-                new SolicitacaoMapper(), new HistoricoStatusMapper(),
-                usuarioAutenticadoProvider, clock);
+                statusRepository, solicitacaoRepository, new SolicitacaoMapper(),
+                historicoStatusRegistrador, usuarioAutenticadoProvider, clock);
     }
 
     private Aluno aluno(boolean ativo) {
@@ -277,13 +275,12 @@ class SolicitacaoServiceImplTest {
 
         service.criar(new SolicitacaoCreateRequest(1L, 1L, 1L, null));
 
-        ArgumentCaptor<HistoricoStatus> captor = ArgumentCaptor.forClass(HistoricoStatus.class);
-        verify(historicoStatusRepository).save(captor.capture());
-        HistoricoStatus h = captor.getValue();
-        assertNull(h.getStatusAnterior());
-        assertEquals("ABERTA", h.getStatusNovo().getCodigo());
-        assertEquals(CODIGO_AUTENTICADO, h.getUsuario().getCodigoResponsavel());
-        assertEquals(LocalDateTime.now(clock), h.getDataMovimentacao());
+        ArgumentCaptor<Status> inicial = ArgumentCaptor.forClass(Status.class);
+        ArgumentCaptor<Usuario> autor = ArgumentCaptor.forClass(Usuario.class);
+        verify(historicoStatusRegistrador).registrarAbertura(any(), inicial.capture(), autor.capture(),
+                eq(LocalDateTime.now(clock)));
+        assertEquals("ABERTA", inicial.getValue().getCodigo());
+        assertEquals(CODIGO_AUTENTICADO, autor.getValue().getCodigoResponsavel());
     }
 
     @Test
@@ -294,14 +291,16 @@ class SolicitacaoServiceImplTest {
 
         service.alterarStatus(10L, pedido(destino));
 
-        ArgumentCaptor<HistoricoStatus> captor = ArgumentCaptor.forClass(HistoricoStatus.class);
-        verify(historicoStatusRepository).save(captor.capture());
-        HistoricoStatus h = captor.getValue();
-        assertEquals("ABERTA", h.getStatusAnterior().getCodigo());
-        assertEquals("EM_ANALISE", h.getStatusNovo().getCodigo());
-        assertEquals(CODIGO_AUTENTICADO, h.getUsuario().getCodigoResponsavel());
-        assertEquals(LocalDateTime.now(clock), h.getDataMovimentacao());
-        assertEquals(10L, h.getSolicitacao().getId());
+        ArgumentCaptor<Solicitacao> solicitacao = ArgumentCaptor.forClass(Solicitacao.class);
+        ArgumentCaptor<Status> anterior = ArgumentCaptor.forClass(Status.class);
+        ArgumentCaptor<Status> novo = ArgumentCaptor.forClass(Status.class);
+        ArgumentCaptor<Usuario> autor = ArgumentCaptor.forClass(Usuario.class);
+        verify(historicoStatusRegistrador).registrarMovimentacao(solicitacao.capture(), anterior.capture(),
+                novo.capture(), autor.capture(), eq(LocalDateTime.now(clock)));
+        assertEquals(10L, solicitacao.getValue().getId());
+        assertEquals("ABERTA", anterior.getValue().getCodigo());
+        assertEquals("EM_ANALISE", novo.getValue().getCodigo());
+        assertEquals(CODIGO_AUTENTICADO, autor.getValue().getCodigoResponsavel());
     }
 
     @Test
@@ -310,7 +309,7 @@ class SolicitacaoServiceImplTest {
         cenario(status(1L, "ABERTA", false), destino);
 
         assertThrows(TransicaoStatusInvalidaException.class, () -> service.alterarStatus(10L, pedido(destino)));
-        verifyNoInteractions(historicoStatusRepository);
+        verifyNoInteractions(historicoStatusRegistrador);
     }
 
     @Test
@@ -322,8 +321,7 @@ class SolicitacaoServiceImplTest {
     @Test
     void historico_semMovimentacao_retornaListaVazia() {
         when(solicitacaoRepository.existsById(10L)).thenReturn(true);
-        when(historicoStatusRepository.findBySolicitacaoIdOrderByDataMovimentacaoAscIdAsc(10L))
-                .thenReturn(List.of());
+        when(historicoStatusRegistrador.doSolicitacao(10L)).thenReturn(List.of());
 
         assertTrue(service.historico(10L).isEmpty());
     }

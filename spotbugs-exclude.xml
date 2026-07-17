@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Exclusões do SpotBugs. Cada uma precisa de justificativa: um filtro sem motivo
+  é ruído acumulado, e o objetivo da análise é justamente não ter alerta ignorado
+  sem que alguém tenha decidido ignorá-lo.
+-->
+<FindBugsFilter>
+
+    <!--
+      Entidades JPA expõem e recebem LocalDateTime/Date por getters e setters.
+      O SpotBugs alerta sobre armazenar referência mutável (EI_EXPOSE_REP), mas
+      LocalDateTime é imutável e o padrão é imposto pelo Hibernate, que precisa
+      dos acessores. Aplicar defensive copy aqui não protegeria nada.
+    -->
+    <Match>
+        <Package name="br.com.samuel.documentos_academicos.entity"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+      Mesma situação nos DTOs (records) e nos componentes que recebem
+      colaboradores do Spring pelo construtor: guardar a referência injetada é o
+      comportamento pretendido, não um vazamento.
+    -->
+    <Match>
+        <Or>
+            <Package name="br.com.samuel.documentos_academicos.dto.request"/>
+            <Package name="br.com.samuel.documentos_academicos.dto.response"/>
+            <Package name="br.com.samuel.documentos_academicos.service.impl"/>
+            <Package name="br.com.samuel.documentos_academicos.controller"/>
+            <Package name="br.com.samuel.documentos_academicos.security"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+</FindBugsFilter>

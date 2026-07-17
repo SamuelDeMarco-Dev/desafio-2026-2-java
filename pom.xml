@@ -114,6 +114,18 @@
 			<version>2.8.9</version>
 		</dependency>
 
+		<!-- Testes de integracao contra PostgreSQL real (versoes pelo BOM) -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -121,6 +133,50 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<!--
+			  Testes de integracao (*IT) rodam na fase verify, nao em package.
+			  Isso e proposital: o Dockerfile roda "mvnw clean package" dentro de um
+			  container sem acesso ao daemon do Docker, e o Testcontainers falharia.
+			  Use "./mvnw verify" para rodar unitarios + integracao.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!--
+			  Analise estatica (Issue 25). Roda em "./mvnw verify" e falha o build
+			  se encontrar algo de prioridade alta ou media. Nao roda em "package",
+			  para nao atrasar o build da imagem Docker.
+			-->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.6.6</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Medium</threshold>
+					<includeTests>false</includeTests>
+					<excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
