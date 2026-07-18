@@ -4,7 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import { podeGerenciarSolicitacoes } from "../../auth/permissoes";
 import { ChipSelect } from "../../components/ChipSelect";
 import { FluxoBpmnModal } from "../../components/FluxoBpmnModal";
-import { listarStatus } from "../../services/cadastrosApi";
+import { listarCursos, listarStatus, listarTiposDocumento, type Opcao } from "../../services/cadastrosApi";
 import { extrairMensagemErro } from "../../services/erroApi";
 import { baixarRelatorioSolicitacoes } from "../../services/relatoriosApi";
 import {
@@ -55,6 +55,8 @@ export function SolicitacoesListPage() {
   const gerencia = usuario ? podeGerenciarSolicitacoes(usuario.perfis) : false;
 
   const [statusDisponiveis, setStatusDisponiveis] = useState<StatusResponse[]>([]);
+  const [cursos, setCursos] = useState<Opcao[]>([]);
+  const [tiposDocumento, setTiposDocumento] = useState<Opcao[]>([]);
   const [filtrosForm, setFiltrosForm] = useState<FiltrosForm>(FILTROS_VAZIOS);
   const [filtrosAplicados, setFiltrosAplicados] = useState<SolicitacaoFiltro>({});
   const [pagina, setPagina] = useState(0);
@@ -66,6 +68,8 @@ export function SolicitacoesListPage() {
 
   useEffect(() => {
     listarStatus().then(setStatusDisponiveis).catch(() => setStatusDisponiveis([]));
+    listarCursos().then(setCursos).catch(() => setCursos([]));
+    listarTiposDocumento().then(setTiposDocumento).catch(() => setTiposDocumento([]));
   }, []);
 
   useEffect(() => {
@@ -126,16 +130,28 @@ export function SolicitacoesListPage() {
           value={filtrosForm.aluno}
           onChange={(e) => setFiltrosForm({ ...filtrosForm, aluno: e.target.value })}
         />
-        <input
-          placeholder="Curso"
+        <select
           value={filtrosForm.curso}
           onChange={(e) => setFiltrosForm({ ...filtrosForm, curso: e.target.value })}
-        />
-        <input
-          placeholder="Tipo de documento"
+        >
+          <option value="">Todos os cursos</option>
+          {cursos.map((c) => (
+            <option key={c.id} value={c.nome}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+        <select
           value={filtrosForm.tipoDocumento}
           onChange={(e) => setFiltrosForm({ ...filtrosForm, tipoDocumento: e.target.value })}
-        />
+        >
+          <option value="">Todos os tipos</option>
+          {tiposDocumento.map((t) => (
+            <option key={t.id} value={t.nome}>
+              {t.nome}
+            </option>
+          ))}
+        </select>
         <input
           type="date"
           value={filtrosForm.dataInicio}
