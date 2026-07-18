@@ -6,6 +6,7 @@ import { ChipSelect } from "../../components/ChipSelect";
 import { FluxoBpmnModal } from "../../components/FluxoBpmnModal";
 import { listarStatus } from "../../services/cadastrosApi";
 import { extrairMensagemErro } from "../../services/erroApi";
+import { baixarRelatorioSolicitacoes } from "../../services/relatoriosApi";
 import {
   listarSolicitacoes,
   type PageResponse,
@@ -61,6 +62,7 @@ export function SolicitacoesListPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [statusFluxo, setStatusFluxo] = useState<string | null>(null);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   useEffect(() => {
     listarStatus().then(setStatusDisponiveis).catch(() => setStatusDisponiveis([]));
@@ -87,6 +89,18 @@ export function SolicitacoesListPage() {
     setFiltrosAplicados({});
   }
 
+  async function aoGerarPdf() {
+    setGerandoPdf(true);
+    setErro(null);
+    try {
+      await baixarRelatorioSolicitacoes(filtrosAplicados);
+    } catch (e) {
+      setErro(extrairMensagemErro(e, "Não foi possível gerar o relatório PDF."));
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
+
   const opcoesStatus = [{ value: "", label: "Todos" }, ...statusDisponiveis.map((s) => ({ value: s.codigo, label: s.nome }))];
   const opcoesPrioridade = [{ value: "", label: "Todas" }, ...PRIORIDADES.map((p) => ({ value: p, label: p }))];
 
@@ -94,11 +108,16 @@ export function SolicitacoesListPage() {
     <section>
       <div className="page-header">
         <h1>Solicitações</h1>
-        {gerencia && (
-          <Link to="/solicitacoes/nova" className="botao-primario">
-            + Nova solicitação
-          </Link>
-        )}
+        <div className="page-header-acoes">
+          <button type="button" className="botao-voltar" onClick={aoGerarPdf} disabled={gerandoPdf}>
+            {gerandoPdf ? "Gerando..." : "Gerar PDF"}
+          </button>
+          {gerencia && (
+            <Link to="/solicitacoes/nova" className="botao-primario">
+              + Nova solicitação
+            </Link>
+          )}
+        </div>
       </div>
 
       <form onSubmit={aoFiltrar} className="filtros">
