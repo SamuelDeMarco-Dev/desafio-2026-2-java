@@ -1153,3 +1153,26 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+/* ===================== Recuperação de senha / tema no login ===================== */
+
+.login-tema {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+}
+
+.link-esqueci-senha {
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--cor-primaria);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  align-self: center;
+}
+
+.link-esqueci-senha:hover {
+  color: var(--cor-primaria-hover);
+}

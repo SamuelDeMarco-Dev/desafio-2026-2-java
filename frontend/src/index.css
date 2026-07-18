@@ -19,7 +19,7 @@
 
   font: 16px/145% var(--sans);
   letter-spacing: 0.1px;
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -28,22 +28,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --cor-primaria: #5f8fc9;
-    --cor-primaria-hover: #7ba4d6;
-    --cor-secundaria: #5cc98a;
-    --cor-secundaria-hover: #7bd6a1;
-    --cor-input-bg: #1c2430;
-    --bg-app: #101116;
-    --sidebar-bg: linear-gradient(180deg, #0d1522 0%, #14233c 100%);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* Modo noturno: controlado pelo atributo data-tema (persistido em localStorage),
+   não pela preferência do sistema — o usuário alterna pelo botão do site. */
+:root[data-tema="escuro"] {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --cor-primaria: #5f8fc9;
+  --cor-primaria-hover: #7ba4d6;
+  --cor-secundaria: #4dae77;
+  --cor-secundaria-hover: #5cc98a;
+  --cor-input-bg: #1c2430;
+  --bg-app: #101116;
+  --sidebar-bg: linear-gradient(180deg, #0d1522 0%, #14233c 100%);
+  --shadow:
+    rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  color-scheme: dark;
 }
 
 #root {

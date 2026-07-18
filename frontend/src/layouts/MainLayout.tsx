@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { podeGerenciarCadastros } from "../auth/permissoes";
+import { BotaoTema } from "../tema/BotaoTema";
 
 function classeNav({ isActive }: { isActive: boolean }): string {
   return isActive ? "nav-item nav-ativo" : "nav-item";
@@ -48,6 +50,7 @@ export function MainLayout() {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
   const [menuAberto, setMenuAberto] = useState(false);
+  const mostraCadastros = usuario ? podeGerenciarCadastros(usuario.perfis) : false;
 
   function aoSair() {
     logout();
@@ -64,8 +67,8 @@ export function MainLayout() {
         <div className="sidebar-marca">
           <span className="sidebar-marca-icone" aria-hidden="true" />
           <span>
-            <strong>UNOESC</strong>
-            <small>Documentos Acadêmicos</small>
+            <strong>Central de Documentos</strong>
+            <small>Gerenciamento de solicitações</small>
           </span>
         </div>
 
@@ -78,10 +81,12 @@ export function MainLayout() {
             <IconeSolicitacoes />
             Solicitações
           </NavLink>
-          <NavLink to="/cadastros" className={classeNav} onClick={fecharMenu}>
-            <IconeCadastros />
-            Cadastros
-          </NavLink>
+          {mostraCadastros && (
+            <NavLink to="/cadastros" className={classeNav} onClick={fecharMenu}>
+              <IconeCadastros />
+              Cadastros
+            </NavLink>
+          )}
         </nav>
 
         <button type="button" className="sidebar-sair" onClick={aoSair}>
@@ -107,6 +112,7 @@ export function MainLayout() {
             </svg>
           </button>
           <span className="topbar-titulo">Central de Documentos</span>
+          <BotaoTema />
           <span className="topbar-usuario">{usuario?.login}</span>
         </header>
 

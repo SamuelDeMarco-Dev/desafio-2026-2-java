@@ -152,6 +152,11 @@ export function SolicitacoesListPage() {
         />
       </div>
 
+      <p className="texto-suave">
+        Ordenadas por prioridade. Solicitações encerradas (emitidas/reprovadas) aparecem apenas ao
+        filtrar pelo status correspondente.
+      </p>
+
       {erro && (
         <p role="alert" className="erro-banner">
           {erro}
