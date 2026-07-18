@@ -26,6 +26,10 @@ documentos acadêmicos (histórico, diploma, atestado de matrícula, etc.):
 > Para regenerá-lo depois de adicionar as imagens em [`docs/imagens/`](docs/imagens/),
 > rode `powershell -ExecutionPolicy Bypass -File docs\gerar-pdf.ps1` (usa o Edge/Chrome já
 > instalado, sem dependências extras).
+>
+> 🚀 **Publicar em VPS (produção com domínio e HTTPS):** passo a passo completo em
+> [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md) — usa [`docker-compose.prod.yml`](docker-compose.prod.yml)
+> com PostgreSQL + API + Caddy (proxy reverso e HTTPS automático via Let's Encrypt).
 
 ---
 
