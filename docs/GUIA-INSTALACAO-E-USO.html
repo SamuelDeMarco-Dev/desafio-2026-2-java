@@ -309,10 +309,122 @@ npm run dev        <span class="cmt"># abre em http://localhost:3000</span></cod
 <span class="cmt"># frontend</span>
 cd frontend &amp;&amp; npm run build &amp;&amp; npm run lint</code></pre>
 
-<h2>7. Fluxo de status (resumo)</h2>
-<p><b>ABERTA → EM_ANÁLISE →</b> ( <b>APROVADA → EMITIDA</b> ) <b>ou REPROVADA</b>. As transições
-são validadas pelo servidor (o enum define o que é permitido); a interface só facilita com o modal BPMN.
-Consulte o <code>README.md</code> para a tabela completa de permissões e regras.</p>
+<style>
+  .fluxo-mapa { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:16px 0; }
+  .etapa-badge { display:inline-block; padding:5px 12px; border-radius:999px; font-weight:700; font-size:12px; color:#fff; white-space:nowrap; }
+  .et-aberta{background:#6b7280}.et-analise{background:#1a3c6e}.et-aprovada{background:#3fa66a}.et-emitida{background:#2f8556}.et-reprovada{background:#c0392b}
+  .seta{color:#5b6675;font-weight:700;padding:0 2px}
+  .etapa-card{border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:8px;padding:11px 15px;margin:10px 0;page-break-inside:avoid}
+  .etapa-card h4{margin:0 0 5px;font-size:14px;color:var(--navy)}
+  .etapa-card .linha{font-size:12.5px;margin:3px 0}
+  .etapa-card .rot{font-weight:700;color:var(--muted);display:inline-block;min-width:96px}
+</style>
+
+<div class="capa" style="padding:34px 40px;margin:36px 0 26px">
+  <span class="selo">Parte II</span>
+  <h1 style="font-size:24px">Como o sistema funciona</h1>
+  <p>Perfis de acesso, o ciclo de vida de uma solicitação e o que cada tela faz.</p>
+</div>
+
+<h2>7. Perfis de acesso</h2>
+<p>Todo acesso é autenticado por token JWT. Há três perfis, e o que cada um pode fazer é decidido
+<b>no servidor</b> (a interface só esconde botões por conveniência — a regra que vale é a da API).</p>
+<table>
+  <tr><th>Perfil</th><th>O que pode fazer</th></tr>
+  <tr><td><b>ADMIN</b></td><td>Tudo: cadastros (alunos, cursos, tipos, status, <b>usuários</b>), solicitações, movimentação de status, anexos e <b>exclusões</b>.</td></tr>
+  <tr><td><b>OPERADOR</b></td><td>Cria e movimenta solicitações, anexa e baixa documentos. <b>Não</b> acessa a aba de Cadastros nem exclui recursos.</td></tr>
+  <tr><td><b>CONSULTA</b></td><td>Somente leitura: visualiza solicitações, dashboard e relatórios. Não cria nem altera nada.</td></tr>
+</table>
+<div class="nota"><b>Regra geral no backend:</b> escritas em cadastros exigem <b>ADMIN</b>; criar/mover solicitações e anexos exige <b>ADMIN ou OPERADOR</b>; exclusões (<code>DELETE</code>) são sempre <b>ADMIN</b>; leituras (<code>GET</code>) exigem apenas estar autenticado.</div>
+
+<h2 class="quebra">8. O ciclo de vida de uma solicitação</h2>
+<p>Cada solicitação de documento percorre uma sequência de <b>etapas (status)</b>. O caminho é fixo e
+validado pelo servidor — não é possível pular etapas nem voltar de uma etapa final.</p>
+
+<div class="fluxo-mapa">
+  <span class="etapa-badge et-aberta">ABERTA</span><span class="seta">→</span>
+  <span class="etapa-badge et-analise">EM ANÁLISE</span><span class="seta">→</span>
+  <span class="etapa-badge et-aprovada">APROVADA</span><span class="seta">→</span>
+  <span class="etapa-badge et-emitida">EMITIDA ✓</span>
+  <span class="seta" style="margin-left:10px">e, em análise, pode ir para</span>
+  <span class="etapa-badge et-reprovada">REPROVADA ✗</span>
+</div>
+
+<div class="etapa-card">
+  <h4>1. ABERTA</h4>
+  <div class="linha"><span class="rot">O que é:</span> estado inicial, criado automaticamente quando a solicitação é registrada.</div>
+  <div class="linha"><span class="rot">Quem cria:</span> ADMIN ou OPERADOR (informando aluno, curso, tipo de documento e prioridade).</div>
+  <div class="linha"><span class="rot">Vai para:</span> <b>EM ANÁLISE</b> (único caminho).</div>
+</div>
+<div class="etapa-card">
+  <h4>2. EM ANÁLISE</h4>
+  <div class="linha"><span class="rot">O que é:</span> a solicitação está sendo avaliada por um responsável.</div>
+  <div class="linha"><span class="rot">Vai para:</span> <b>APROVADA</b> ou <b>REPROVADA</b> — é aqui que a decisão acontece.</div>
+</div>
+<div class="etapa-card">
+  <h4>3. APROVADA</h4>
+  <div class="linha"><span class="rot">O que é:</span> pedido deferido, aguardando a emissão do documento.</div>
+  <div class="linha"><span class="rot">Vai para:</span> <b>EMITIDA</b>.</div>
+</div>
+<div class="etapa-card" style="border-left-color:#2f8556">
+  <h4>4. EMITIDA ✓ <span style="font-weight:400;font-size:12px;color:var(--muted)">(final)</span></h4>
+  <div class="linha"><span class="rot">O que é:</span> documento emitido — a solicitação está <b>concluída</b> e registra a data de emissão.</div>
+  <div class="linha"><span class="rot">Vai para:</span> nada. É um estado final e não se movimenta mais.</div>
+</div>
+<div class="etapa-card" style="border-left-color:#c0392b">
+  <h4>5. REPROVADA ✗ <span style="font-weight:400;font-size:12px;color:var(--muted)">(final)</span></h4>
+  <div class="linha"><span class="rot">O que é:</span> pedido indeferido na análise. Encerra a solicitação sem emissão.</div>
+  <div class="linha"><span class="rot">Vai para:</span> nada. Também é final.</div>
+</div>
+
+<h3>As três regras que o servidor valida ao mover uma etapa</h3>
+<p>Toda mudança de status passa por três checagens, nesta ordem:</p>
+<ol>
+  <li><b>Identidade:</b> quem move precisa informar o próprio <code>codigoResponsavel</code>; se não bater com o do usuário autenticado, a operação é recusada.</li>
+  <li><b>Transição válida:</b> o destino precisa ser um passo permitido a partir da etapa atual (o diagrama acima). Pular ou voltar etapas é bloqueado (erro <code>422</code>).</li>
+  <li><b>Responsável da etapa:</b> se a etapa de destino tiver um <b>responsável designado</b>, só esse responsável pode levar a solicitação até ela (erro <code>403</code>). Não há atalho de administrador aqui.</li>
+</ol>
+<div class="nota"><b>Como visualizar:</b> na listagem e no detalhe há um ícone de <b>fluxo</b> que abre um modal em formato <b>BPMN</b>, destacando em qual etapa a solicitação está e para onde ela pode ir.</div>
+
+<h3>Prioridade e ordenação</h3>
+<p>Cada solicitação tem uma prioridade: <b>URGENTE</b>, <b>ALTA</b> ou <b>NORMAL</b>. A listagem já vem
+ordenada por prioridade (urgentes primeiro) e, dentro da mesma prioridade, das mais recentes para as mais antigas.</p>
+
+<h3>Solicitações encerradas</h3>
+<p>Para manter a tela focada no que precisa de ação, as solicitações <b>finalizadas</b> (EMITIDA e REPROVADA)
+<b>não aparecem</b> na listagem padrão — elas só surgem quando você filtra explicitamente por esse status.</p>
+
+<h2 class="quebra">9. O que cada tela faz</h2>
+
+<h3>Login e recuperação de senha</h3>
+<p>O acesso é por <b>login e senha</b>. Na própria tela de login há o fluxo <b>“Esqueci a senha”</b>:
+o usuário informa o login, o sistema gera um <b>código de 6 dígitos</b> (válido por 15 minutos, uso único)
+e, com esse código, define uma nova senha.</p>
+<div class="aviso"><b>Limitação assumida no projeto:</b> não há serviço de e-mail, então o código de recuperação
+<b>volta na resposta</b> da API em vez de ser enviado por e-mail. É uma decisão documentada; em produção real
+o envio por e-mail seria o próximo passo.</div>
+
+<h3>Dashboard (indicadores)</h3>
+<p>Cartões de resumo, gráficos por <b>status</b> e por <b>período</b>, e os <b>documentos mais solicitados</b>,
+com um filtro de período que atualiza os indicadores. Serve para acompanhar o volume e a distribuição das solicitações.</p>
+
+<h3>Solicitações</h3>
+<p>É o coração do sistema. Nela você:</p>
+<ul>
+  <li><b>Lista e filtra</b> por aluno, curso, tipo de documento, status, prioridade e intervalo de datas (curso e tipo são listas do que está cadastrado).</li>
+  <li><b>Cria</b> uma nova solicitação escolhendo aluno, curso, tipo de documento e prioridade por botões interativos.</li>
+  <li>Abre o <b>detalhe</b>, onde é possível <b>anexar documentos</b> (upload), baixá-los e — para ADMIN — removê-los.</li>
+  <li><b>Movimenta o status</b> seguindo as regras da seção 8, e consulta o <b>histórico</b> completo de movimentações (com autor e data, via auditoria).</li>
+  <li><b>Gera o relatório PDF</b> das solicitações, respeitando os mesmos filtros aplicados na tela.</li>
+</ul>
+
+<h3>Cadastros (somente ADMIN)</h3>
+<p>Telas para manter os dados de base: <b>alunos</b>, <b>cursos</b>, <b>tipos de documento</b>,
+<b>status</b> (onde se pode designar um <b>responsável</b> por etapa) e <b>usuários</b> (com seus perfis).
+As validações do servidor — como nomes duplicados — são exibidas ao usuário.</p>
+
+<h3>Tema claro / escuro</h3>
+<p>Um botão no topo alterna entre modo claro e escuro, e a preferência fica salva no navegador.</p>
 
 <footer>
   Gerado a partir de <code>docs/GUIA-INSTALACAO-E-USO.html</code> · A referência completa está no <code>README.md</code> do repositório.
