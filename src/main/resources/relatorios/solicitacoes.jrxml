@@ -121,7 +121,7 @@
                 <textFieldExpression><![CDATA[" " + $F{dataSolicitacao}]]></textFieldExpression>
             </textField>
             <line>
-                <reportElement x="0" y="17" width="555" height="1" forecolor="#DDDDDD" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a19"/>
+                <reportElement positionType="Float" x="0" y="17" width="555" height="1" forecolor="#DDDDDD" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a19"/>
             </line>
         </band>
     </detail>
