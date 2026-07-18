@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { BotaoVoltar } from "../../components/BotaoVoltar";
 import { podeGerenciarCadastros } from "../../auth/permissoes";
 import { extrairErrosDeCampo, extrairMensagemErro } from "../../services/erroApi";
 import type { PageResponse } from "../../services/solicitacoesApi";
+import { ChipMultiSelect, ChipSelect } from "../../components/ChipSelect";
 import {
   alterarSituacaoUsuario,
   atualizarUsuario,
@@ -147,7 +149,10 @@ export function UsuariosPage() {
   return (
     <section>
       <div className="page-header">
-        <h1>Usuários</h1>
+        <div className="page-header-titulo">
+          <BotaoVoltar />
+          <h1>Usuários</h1>
+        </div>
         {gerencia && !mostrarForm && (
           <button type="button" className="botao-primario" onClick={aoNovo}>
             Novo usuário
@@ -161,11 +166,17 @@ export function UsuariosPage() {
           value={filtroForm.nome}
           onChange={(e) => setFiltroForm({ ...filtroForm, nome: e.target.value })}
         />
-        <select value={filtroForm.ativo} onChange={(e) => setFiltroForm({ ...filtroForm, ativo: e.target.value })}>
-          <option value="">Ativos e inativos</option>
-          <option value="true">Somente ativos</option>
-          <option value="false">Somente inativos</option>
-        </select>
+        <ChipSelect
+  options={[
+    { value: "", label: "Ativos e inativos" },
+    { value: "true", label: "Somente ativos" },
+    { value: "false", label: "Somente inativos" },
+  ]}
+  value={filtroForm.ativo}
+  onChange={(v) => setFiltroForm({ ...filtroForm, ativo: v })}
+  nomeGrupo="Situação"
+/>
+
         <button type="submit">Filtrar</button>
         <button type="button" onClick={aoLimparFiltro}>
           Limpar
@@ -228,14 +239,15 @@ export function UsuariosPage() {
           {errosCampo.codigoResponsavel && <p className="erro-campo">{errosCampo.codigoResponsavel}</p>}
 
           <fieldset>
-            <legend>Perfis</legend>
-            {PERFIS.map((perfil) => (
-              <label key={perfil} className="opcao-checkbox">
-                <input type="checkbox" checked={form.perfis.includes(perfil)} onChange={() => alternarPerfil(perfil)} />
-                {perfil}
-              </label>
-            ))}
-          </fieldset>
+  <legend>Perfis</legend>
+  <ChipMultiSelect
+    options={PERFIS.map((p) => ({ value: p, label: p }))}
+    valores={form.perfis}
+    onToggle={alternarPerfil}
+    nomeGrupo="Perfis"
+  />
+</fieldset>
+
           {errosCampo.perfis && <p className="erro-campo">{errosCampo.perfis}</p>}
 
           <div className="formulario-acoes">

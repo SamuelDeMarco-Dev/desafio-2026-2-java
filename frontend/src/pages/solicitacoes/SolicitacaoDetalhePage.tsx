@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { podeGerenciarSolicitacoes } from "../../auth/permissoes";
+import { BotaoVoltar } from "../../components/BotaoVoltar";
+import { FluxoBpmnModal } from "../../components/FluxoBpmnModal";
+import { SecaoAnexos } from "../../components/SecaoAnexos";
 import { listarStatus } from "../../services/cadastrosApi";
 import { extrairMensagemErro } from "../../services/erroApi";
 import {
@@ -24,6 +27,7 @@ export function SolicitacaoDetalhePage() {
   const [historico, setHistorico] = useState<HistoricoStatusItem[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [fluxoAberto, setFluxoAberto] = useState(false);
 
   const [statusDestinoId, setStatusDestinoId] = useState("");
   const [movimentando, setMovimentando] = useState(false);
@@ -65,7 +69,7 @@ export function SolicitacaoDetalhePage() {
         codigoResponsavel: usuario.codigoResponsavel,
       });
       setStatusDestinoId("");
-      await carregar(); // recarrega solicitação + histórico com o estado atual
+      await carregar();
     } catch (e) {
       setErroMovimentacao(extrairMensagemErro(e, "Não foi possível movimentar a solicitação."));
     } finally {
@@ -91,7 +95,15 @@ export function SolicitacaoDetalhePage() {
 
   return (
     <section>
-      <h1>Solicitação #{solicitacao.id}</h1>
+      <div className="page-header">
+        <div className="page-header-titulo">
+          <BotaoVoltar />
+          <h1>Solicitação #{solicitacao.id}</h1>
+        </div>
+        <button type="button" className="botao-primario" onClick={() => setFluxoAberto(true)}>
+          Ver fluxo
+        </button>
+      </div>
 
       <dl className="detalhe">
         <dt>Aluno</dt>
@@ -155,6 +167,8 @@ export function SolicitacaoDetalhePage() {
         <p>Você não tem permissão para movimentar esta solicitação.</p>
       )}
 
+      <SecaoAnexos solicitacaoId={solicitacaoId} />
+
       <h2>Histórico</h2>
       <table className="tabela">
         <thead>
@@ -176,6 +190,8 @@ export function SolicitacaoDetalhePage() {
           ))}
         </tbody>
       </table>
+
+      <FluxoBpmnModal aberto={fluxoAberto} onFechar={() => setFluxoAberto(false)} statusAtual={solicitacao.status.codigo} />
     </section>
   );
 }

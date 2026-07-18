@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { BotaoVoltar } from "../../components/BotaoVoltar";
 import { podeGerenciarCadastros } from "../../auth/permissoes";
 import { extrairErrosDeCampo, extrairMensagemErro } from "../../services/erroApi";
 import type { PageResponse } from "../../services/solicitacoesApi";
@@ -115,7 +116,10 @@ export function CadastroNomeUnicoPage({ titulo, api }: CadastroNomeUnicoPageProp
   return (
     <section>
       <div className="page-header">
-        <h1>{titulo}</h1>
+        <div className="page-header-titulo">
+          <BotaoVoltar />
+          <h1>{titulo}</h1>
+        </div>
         {gerencia && !mostrarForm && (
           <button type="button" className="botao-primario" onClick={aoNovo}>
             Novo
