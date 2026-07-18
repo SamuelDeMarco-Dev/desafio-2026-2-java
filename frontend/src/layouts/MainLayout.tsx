@@ -17,6 +17,7 @@ export function MainLayout() {
         <nav>
           <Link to="/">Início</Link>
           <Link to="/solicitacoes">Solicitações</Link>
+          <Link to="/cadastros">Cadastros</Link>
         </nav>
         <button type="button" onClick={aoSair}>
           Sair
