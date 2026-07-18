@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { BotaoVoltar } from "../../components/BotaoVoltar";
 import { podeGerenciarCadastros } from "../../auth/permissoes";
 import { extrairErrosDeCampo, extrairMensagemErro } from "../../services/erroApi";
 import type { StatusResponse } from "../../services/solicitacoesApi";
@@ -121,7 +122,10 @@ export function StatusPage() {
   return (
     <section>
       <div className="page-header">
-        <h1>Status</h1>
+        <div className="page-header-titulo">
+          <BotaoVoltar />
+          <h1>Status</h1>
+        </div>
         {gerencia && !mostrarForm && (
           <button type="button" className="botao-primario" onClick={aoNovo}>
             Novo status

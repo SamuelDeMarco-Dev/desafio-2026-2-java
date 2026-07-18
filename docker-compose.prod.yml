@@ -1,0 +1,74 @@
+# Stack de produção: PostgreSQL + API (Spring Boot) + Caddy (SPA + proxy + HTTPS).
+#
+# Apenas o Caddy (web) expõe portas para a internet (80/443). O banco e a API
+# ficam acessíveis somente na rede interna do compose.
+#
+# Uso na VPS:
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # Sem "ports": o banco NÃO é exposto à internet, só à rede interna.
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SERVER_PORT: 8080
+      ADMIN_LOGIN: ${ADMIN_LOGIN:-administrador}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_CODIGO_RESPONSAVEL: ${ADMIN_CODIGO_RESPONSAVEL:-1000}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRACAO_SEGUNDOS: ${JWT_EXPIRACAO_SEGUNDOS:-3600}
+      # Mesma origem do site: em domínio único não há CORS de fato, mas mantemos
+      # a lista restrita ao domínio público por segurança.
+      CORS_ORIGENS: ${PUBLIC_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Sem "ports": a API só é acessível pelo Caddy na rede interna.
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # URL embutida no bundle do frontend em tempo de build.
+        VITE_API_URL: ${PUBLIC_URL}
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    volumes:
+      - caddy_data:/data      # certificados TLS (persistem entre reinícios)
+      - caddy_config:/config
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

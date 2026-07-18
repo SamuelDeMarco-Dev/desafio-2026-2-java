@@ -2,8 +2,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { podeGerenciarSolicitacoes } from "../../auth/permissoes";
-import { listarStatus } from "../../services/cadastrosApi";
+import { ChipSelect } from "../../components/ChipSelect";
+import { FluxoBpmnModal } from "../../components/FluxoBpmnModal";
+import { listarCursos, listarStatus, listarTiposDocumento, type Opcao } from "../../services/cadastrosApi";
 import { extrairMensagemErro } from "../../services/erroApi";
+import { baixarRelatorioSolicitacoes } from "../../services/relatoriosApi";
 import {
   listarSolicitacoes,
   type PageResponse,
@@ -52,15 +55,21 @@ export function SolicitacoesListPage() {
   const gerencia = usuario ? podeGerenciarSolicitacoes(usuario.perfis) : false;
 
   const [statusDisponiveis, setStatusDisponiveis] = useState<StatusResponse[]>([]);
+  const [cursos, setCursos] = useState<Opcao[]>([]);
+  const [tiposDocumento, setTiposDocumento] = useState<Opcao[]>([]);
   const [filtrosForm, setFiltrosForm] = useState<FiltrosForm>(FILTROS_VAZIOS);
   const [filtrosAplicados, setFiltrosAplicados] = useState<SolicitacaoFiltro>({});
   const [pagina, setPagina] = useState(0);
   const [resultado, setResultado] = useState<PageResponse<SolicitacaoResumo> | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [statusFluxo, setStatusFluxo] = useState<string | null>(null);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   useEffect(() => {
     listarStatus().then(setStatusDisponiveis).catch(() => setStatusDisponiveis([]));
+    listarCursos().then(setCursos).catch(() => setCursos([]));
+    listarTiposDocumento().then(setTiposDocumento).catch(() => setTiposDocumento([]));
   }, []);
 
   useEffect(() => {
@@ -84,15 +93,35 @@ export function SolicitacoesListPage() {
     setFiltrosAplicados({});
   }
 
+  async function aoGerarPdf() {
+    setGerandoPdf(true);
+    setErro(null);
+    try {
+      await baixarRelatorioSolicitacoes(filtrosAplicados);
+    } catch (e) {
+      setErro(extrairMensagemErro(e, "Não foi possível gerar o relatório PDF."));
+    } finally {
+      setGerandoPdf(false);
+    }
+  }
+
+  const opcoesStatus = [{ value: "", label: "Todos" }, ...statusDisponiveis.map((s) => ({ value: s.codigo, label: s.nome }))];
+  const opcoesPrioridade = [{ value: "", label: "Todas" }, ...PRIORIDADES.map((p) => ({ value: p, label: p }))];
+
   return (
     <section>
       <div className="page-header">
         <h1>Solicitações</h1>
-        {gerencia && (
-          <Link to="/solicitacoes/nova" className="botao-primario">
-            Nova solicitação
-          </Link>
-        )}
+        <div className="page-header-acoes">
+          <button type="button" className="botao-voltar" onClick={aoGerarPdf} disabled={gerandoPdf}>
+            {gerandoPdf ? "Gerando..." : "Gerar PDF"}
+          </button>
+          {gerencia && (
+            <Link to="/solicitacoes/nova" className="botao-primario">
+              + Nova solicitação
+            </Link>
+          )}
+        </div>
       </div>
 
       <form onSubmit={aoFiltrar} className="filtros">
@@ -101,32 +130,25 @@ export function SolicitacoesListPage() {
           value={filtrosForm.aluno}
           onChange={(e) => setFiltrosForm({ ...filtrosForm, aluno: e.target.value })}
         />
-        <input
-          placeholder="Curso"
+        <select
           value={filtrosForm.curso}
           onChange={(e) => setFiltrosForm({ ...filtrosForm, curso: e.target.value })}
-        />
-        <input
-          placeholder="Tipo de documento"
-          value={filtrosForm.tipoDocumento}
-          onChange={(e) => setFiltrosForm({ ...filtrosForm, tipoDocumento: e.target.value })}
-        />
-        <select value={filtrosForm.status} onChange={(e) => setFiltrosForm({ ...filtrosForm, status: e.target.value })}>
-          <option value="">Todos os status</option>
-          {statusDisponiveis.map((s) => (
-            <option key={s.id} value={s.codigo}>
-              {s.nome}
+        >
+          <option value="">Todos os cursos</option>
+          {cursos.map((c) => (
+            <option key={c.id} value={c.nome}>
+              {c.nome}
             </option>
           ))}
         </select>
         <select
-          value={filtrosForm.prioridade}
-          onChange={(e) => setFiltrosForm({ ...filtrosForm, prioridade: e.target.value })}
+          value={filtrosForm.tipoDocumento}
+          onChange={(e) => setFiltrosForm({ ...filtrosForm, tipoDocumento: e.target.value })}
         >
-          <option value="">Todas as prioridades</option>
-          {PRIORIDADES.map((p) => (
-            <option key={p} value={p}>
-              {p}
+          <option value="">Todos os tipos</option>
+          {tiposDocumento.map((t) => (
+            <option key={t.id} value={t.nome}>
+              {t.nome}
             </option>
           ))}
         </select>
@@ -146,6 +168,30 @@ export function SolicitacoesListPage() {
         </button>
       </form>
 
+      <div className="grupo-filtro">
+        <span className="grupo-filtro-rotulo">Status</span>
+        <ChipSelect
+          options={opcoesStatus}
+          value={filtrosForm.status}
+          onChange={(v) => setFiltrosForm({ ...filtrosForm, status: v })}
+          nomeGrupo="Status"
+        />
+      </div>
+      <div className="grupo-filtro">
+        <span className="grupo-filtro-rotulo">Prioridade</span>
+        <ChipSelect
+          options={opcoesPrioridade}
+          value={filtrosForm.prioridade}
+          onChange={(v) => setFiltrosForm({ ...filtrosForm, prioridade: v })}
+          nomeGrupo="Prioridade"
+        />
+      </div>
+
+      <p className="texto-suave">
+        Ordenadas por prioridade. Solicitações encerradas (emitidas/reprovadas) aparecem apenas ao
+        filtrar pelo status correspondente.
+      </p>
+
       {erro && (
         <p role="alert" className="erro-banner">
           {erro}
@@ -155,7 +201,7 @@ export function SolicitacoesListPage() {
 
       {!carregando && resultado && (
         <>
-          <table className="tabela">
+          <table className="tabela tabela-cards">
             <thead>
               <tr>
                 <th>Aluno</th>
@@ -164,24 +210,46 @@ export function SolicitacoesListPage() {
                 <th>Status</th>
                 <th>Prioridade</th>
                 <th>Solicitada em</th>
+                <th>Fluxo</th>
               </tr>
             </thead>
             <tbody>
               {resultado.content.map((s) => (
                 <tr key={s.id}>
-                  <td>
+                  <td data-label="Aluno">
                     <Link to={`/solicitacoes/${s.id}`}>{s.alunoNome}</Link>
                   </td>
-                  <td>{s.cursoNome}</td>
-                  <td>{s.tipoDocumentoNome}</td>
-                  <td>{s.statusCodigo}</td>
-                  <td>{s.prioridade}</td>
-                  <td>{new Date(s.dataSolicitacao).toLocaleString("pt-BR")}</td>
+                  <td data-label="Curso">{s.cursoNome}</td>
+                  <td data-label="Tipo de documento">{s.tipoDocumentoNome}</td>
+                  <td data-label="Status">
+                    <span className={`badge badge-status-${s.statusCodigo}`}>{s.statusCodigo.replace("_", " ")}</span>
+                  </td>
+                  <td data-label="Prioridade">
+                    <span className={`badge badge-prioridade-${s.prioridade}`}>{s.prioridade}</span>
+                  </td>
+                  <td data-label="Solicitada em">{new Date(s.dataSolicitacao).toLocaleString("pt-BR")}</td>
+                  <td data-label="Fluxo">
+                    <button
+                      type="button"
+                      className="icone-botao"
+                      aria-label="Ver fluxo desta solicitação"
+                      title="Ver fluxo"
+                      onClick={() => setStatusFluxo(s.statusCodigo)}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="5" cy="6" r="2" />
+                        <circle cx="19" cy="6" r="2" />
+                        <circle cx="12" cy="18" r="2" />
+                        <path d="M7 6h10" />
+                        <path d="M12 8v8" />
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
               ))}
               {resultado.content.length === 0 && (
                 <tr>
-                  <td colSpan={6}>Nenhuma solicitação encontrada.</td>
+                  <td colSpan={7}>Nenhuma solicitação encontrada.</td>
                 </tr>
               )}
             </tbody>
@@ -200,6 +268,8 @@ export function SolicitacoesListPage() {
           </div>
         </>
       )}
+
+      <FluxoBpmnModal aberto={statusFluxo !== null} onFechar={() => setStatusFluxo(null)} statusAtual={statusFluxo ?? ""} />
     </section>
   );
 }

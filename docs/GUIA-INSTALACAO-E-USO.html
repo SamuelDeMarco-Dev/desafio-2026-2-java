@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Guia de Instalação e Uso — Sistema de Documentos Acadêmicos</title>
+<style>
+  :root {
+    --navy: #1a3c6e;
+    --green: #3fa66a;
+    --ink: #1f2733;
+    --muted: #5b6675;
+    --line: #d9dee6;
+    --bg-code: #0f1b2d;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 0;
+  }
+  @page { size: A4; margin: 18mm 16mm; }
+
+  /* ---------- Capa ---------- */
+  .capa {
+    background: linear-gradient(135deg, var(--navy) 0%, #12294d 100%);
+    color: #fff;
+    padding: 60px 48px;
+    border-radius: 14px;
+    margin-bottom: 34px;
+  }
+  .capa .selo {
+    display: inline-block;
+    background: var(--green);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+  }
+  .capa h1 { font-size: 30px; margin: 18px 0 6px; line-height: 1.15; }
+  .capa p { margin: 0; color: #cdd9ec; font-size: 14px; }
+  .capa .stack { margin-top: 22px; font-size: 12px; color: #aebfd8; }
+
+  h2 {
+    color: var(--navy);
+    font-size: 19px;
+    margin: 30px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--green);
+  }
+  h3 { color: var(--navy); font-size: 15px; margin: 20px 0 6px; }
+  p { margin: 8px 0; }
+  a { color: var(--navy); }
+
+  .passo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    background: var(--green);
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 13px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  code {
+    font-family: "Cascadia Code", Consolas, monospace;
+    background: #eef1f6;
+    color: #b3266b;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  pre {
+    background: var(--bg-code);
+    color: #e6edf3;
+    padding: 13px 15px;
+    border-radius: 8px;
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  pre .cmt { color: #7d8aa0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12px; }
+  th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #eef2f8; color: var(--navy); font-weight: 600; }
+
+  .nota, .aviso, .dica {
+    border-radius: 8px;
+    padding: 11px 14px;
+    margin: 12px 0;
+    font-size: 12.5px;
+  }
+  .nota  { background: #eef4fb; border-left: 4px solid var(--navy); }
+  .aviso { background: #fdf0ec; border-left: 4px solid #d1502e; }
+  .dica  { background: #eef8f1; border-left: 4px solid var(--green); }
+  .nota b, .aviso b, .dica b { color: var(--navy); }
+
+  ul, ol { margin: 8px 0 8px 20px; padding: 0; }
+  li { margin: 4px 0; }
+
+  /* ---------- Slot de screenshot ---------- */
+  .shot { margin: 16px 0 22px; page-break-inside: avoid; }
+  .shot img {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.08);
+  }
+  .shot.vazio {
+    border: 2px dashed var(--green);
+    border-radius: 10px;
+    background: #f4faf6;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  .shot.vazio img { display: none; }
+  .shot.vazio::before {
+    content: "📸  Espaço para o screenshot";
+    color: var(--navy);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  figcaption {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 7px;
+  }
+  figcaption .arq {
+    font-family: Consolas, monospace;
+    background: #e9eefb;
+    color: var(--navy);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .quebra { page-break-before: always; }
+  footer { margin-top: 36px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <span class="selo">Guia de Instalação e Uso</span>
+  <h1>Sistema de Gestão de Solicitações<br>de Documentos Acadêmicos</h1>
+  <p>Passo a passo para executar o projeto do zero — com e sem Docker — e navegar pelas telas.</p>
+  <div class="stack">Java 21 · Spring Boot 3.5 · PostgreSQL 17 · React 19 + Vite · JWT · JasperReports · Swagger</div>
+</div>
+
+<p>Este guia é a versão <b>ilustrada e resumida</b> do <code>README.md</code>. Os quadros pontilhados
+verdes são espaços reservados para os <b>prints do sistema</b>: salve cada imagem na pasta
+<code>docs/imagens/</code> com o nome indicado na legenda e gere o PDF novamente — a imagem entra sozinha
+no lugar do quadro.</p>
+
+<h2>1. Pré-requisitos</h2>
+<table>
+  <tr><th>Cenário</th><th>Você precisa de</th><th>Conferir com</th></tr>
+  <tr>
+    <td><b>Com Docker</b><br>(recomendado)</td>
+    <td>Docker Desktop 24+ (inclui Docker Compose) · Node.js 20+ e npm (para o frontend) · Git</td>
+    <td><code>docker --version</code><br><code>node --version</code></td>
+  </tr>
+  <tr>
+    <td><b>Sem Docker</b></td>
+    <td>JDK 21 · PostgreSQL 17 · Node.js 20+ e npm · Git<br><span style="color:#5b6675">(o Maven não precisa ser instalado — o projeto traz o <code>mvnw</code>)</span></td>
+    <td><code>java -version</code><br><code>psql --version</code></td>
+  </tr>
+</table>
+<div class="dica"><b>Dica:</b> no modo com Docker você <b>não</b> precisa de Java nem de PostgreSQL instalados na máquina — o container cuida disso. O Node continua sendo necessário porque o frontend roda fora do container.</div>
+
+<h2><span class="passo">1</span>Clonar o projeto</h2>
+<pre><code>git clone &lt;url-do-repositorio&gt; documentos-academicos
+cd documentos-academicos</code></pre>
+
+<h2><span class="passo">2</span>Configurar as variáveis de ambiente</h2>
+<p>Há dois arquivos <code>.env</code>: um para o backend (raiz) e um para o frontend.</p>
+<pre><code><span class="cmt"># backend (na raiz do projeto)</span>
+cp .env.example .env
+
+<span class="cmt"># frontend</span>
+cp frontend/.env.example frontend/.env</code></pre>
+<div class="aviso"><b>Importante:</b> execute o comando <code>cp</code> — não copie/cole o texto do exemplo dentro do arquivo. Em seguida edite o <code>.env</code> da raiz e defina no mínimo:
+<ul>
+  <li><code>DB_PASSWORD</code> — senha do banco;</li>
+  <li><code>JWT_SECRET</code> — chave com <b>32 caracteres ou mais</b> (sem ela a API nem sobe);</li>
+  <li><code>ADMIN_PASSWORD</code> — senha do usuário administrador criado no primeiro start (sem ela o sistema sobe sem nenhum usuário).</li>
+</ul></div>
+
+<h2><span class="passo">3</span>Subir a aplicação</h2>
+<p>Escolha <b>A</b> (com Docker) <b>ou</b> <b>B</b> (sem Docker). Os dois deixam a API em <code>http://localhost:8080</code>.</p>
+
+<h3>Opção A — com Docker (recomendado)</h3>
+<pre><code>docker compose up --build -d
+
+<span class="cmt"># confirme que subiu (deve responder {"status":"UP"}):</span>
+curl http://localhost:8080/actuator/health
+
+<span class="cmt"># acompanhar logs / derrubar / apagar o banco:</span>
+docker compose logs -f
+docker compose down
+docker compose down -v</code></pre>
+
+<h3>Opção B — sem Docker</h3>
+<p>Crie o banco no PostgreSQL uma única vez:</p>
+<pre><code>CREATE DATABASE documentos_academicos;
+CREATE USER doc_user WITH PASSWORD 'a-mesma-do-DB_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE documentos_academicos TO doc_user;</code></pre>
+<div class="aviso"><b>O Spring Boot não lê o <code>.env</code> sozinho.</b> Antes de subir, carregue as variáveis no terminal:
+<pre><code><span class="cmt"># Git Bash / Linux / macOS</span>
+set -a; source .env; set +a
+
+<span class="cmt"># PowerShell</span>
+Get-Content .env | ForEach-Object {
+  if ($_ -match '^\s*([^#=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim()) }
+}</code></pre></div>
+<pre><code>./mvnw spring-boot:run</code></pre>
+
+<h3>Frontend (igual nos dois modos)</h3>
+<pre><code>cd frontend
+npm install
+npm run dev        <span class="cmt"># abre em http://localhost:3000</span></code></pre>
+
+<h2 class="quebra"><span class="passo">4</span>Usando o sistema</h2>
+<p>Abra <a href="http://localhost:3000">http://localhost:3000</a> e entre com o <code>ADMIN_LOGIN</code>
+(padrão <code>administrador</code>) e o <code>ADMIN_PASSWORD</code> que você definiu.</p>
+
+<div class="shot vazio"><img src="imagens/01-login.png" alt="Tela de login"></div>
+<figcaption>Figura 1 — Tela de login <span class="arq">docs/imagens/01-login.png</span></figcaption>
+
+<p><b>Roteiro sugerido de primeiro acesso:</b></p>
+<ol>
+  <li>No menu <b>Cadastros</b>, crie ao menos um <b>aluno</b>, um <b>curso</b> e um <b>tipo de documento</b>.</li>
+  <li>Em <b>Solicitações → Nova</b>, monte a primeira solicitação usando os botões/chips de seleção.</li>
+  <li>Movimente o status (Em análise → Aprovada → Emitida) e acompanhe o fluxo.</li>
+  <li>Gere o <b>relatório PDF</b> pela listagem.</li>
+</ol>
+
+<div class="shot vazio"><img src="imagens/02-dashboard.png" alt="Dashboard"></div>
+<figcaption>Figura 2 — Dashboard com os indicadores <span class="arq">docs/imagens/02-dashboard.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/03-nova-solicitacao.png" alt="Nova solicitação"></div>
+<figcaption>Figura 3 — Formulário de nova solicitação (chips interativos) <span class="arq">docs/imagens/03-nova-solicitacao.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/04-listagem.png" alt="Listagem"></div>
+<figcaption>Figura 4 — Listagem de solicitações <span class="arq">docs/imagens/04-listagem.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/05-fluxo-bpmn.png" alt="Fluxo BPMN"></div>
+<figcaption>Figura 5 — Modal do fluxo (BPMN) destacando a etapa atual <span class="arq">docs/imagens/05-fluxo-bpmn.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/06-detalhe.png" alt="Detalhe e anexos"></div>
+<figcaption>Figura 6 — Detalhe da solicitação com anexos <span class="arq">docs/imagens/06-detalhe.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/07-relatorio-pdf.png" alt="Relatório PDF"></div>
+<figcaption>Figura 7 — Relatório PDF gerado <span class="arq">docs/imagens/07-relatorio-pdf.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/08-cadastros.png" alt="Cadastros"></div>
+<figcaption>Figura 8 — Tela de cadastros básicos <span class="arq">docs/imagens/08-cadastros.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/09-tema-escuro.png" alt="Tema escuro"></div>
+<figcaption>Figura 9 — Aplicação no modo escuro <span class="arq">docs/imagens/09-tema-escuro.png</span></figcaption>
+
+<h2 class="quebra"><span class="passo">5</span>Documentação interativa (Swagger)</h2>
+<p>Com o backend rodando, o Swagger UI fica em:</p>
+<table>
+  <tr><th>Recurso</th><th>Endereço</th></tr>
+  <tr><td>Swagger UI</td><td><code>http://localhost:8080/swagger-ui.html</code></td></tr>
+  <tr><td>OpenAPI (JSON)</td><td><code>http://localhost:8080/v3/api-docs</code></td></tr>
+</table>
+<p><b>Como testar um endpoint protegido:</b></p>
+<ol>
+  <li>Abra o Swagger e chame <code>POST /api/auth/login</code> com <code>login</code> e <code>senha</code> do admin — copie o <code>token</code> da resposta.</li>
+  <li>Clique em <b>Authorize</b> (cadeado, canto superior direito) e cole o token. Não precisa escrever "Bearer" — o esquema já é <em>bearer</em>.</li>
+  <li>Agora todos os endpoints usam o token; teste, por exemplo, <code>GET /api/solicitacoes</code>.</li>
+</ol>
+<div class="nota"><b>Observação:</b> o Swagger fica <b>desligado no perfil <code>prod</code></b> (é uma superfície de ataque desnecessária em produção). Ele está disponível nos perfis <code>dev</code> e <code>docker</code>.</div>
+
+<div class="shot vazio"><img src="imagens/10-swagger.png" alt="Swagger UI"></div>
+<figcaption>Figura 10 — Swagger UI <span class="arq">docs/imagens/10-swagger.png</span></figcaption>
+
+<div class="shot vazio"><img src="imagens/11-swagger-authorize.png" alt="Swagger Authorize"></div>
+<figcaption>Figura 11 — Botão Authorize com o token JWT <span class="arq">docs/imagens/11-swagger-authorize.png</span></figcaption>
+
+<h2>6. Rodar os testes</h2>
+<pre><code><span class="cmt"># unitários (H2, rápido) — 104 testes</span>
+./mvnw test
+
+<span class="cmt"># unitários + integração (Testcontainers, exige Docker) + análise estática</span>
+./mvnw verify
+
+<span class="cmt"># frontend</span>
+cd frontend &amp;&amp; npm run build &amp;&amp; npm run lint</code></pre>
+
+<h2>7. Fluxo de status (resumo)</h2>
+<p><b>ABERTA → EM_ANÁLISE →</b> ( <b>APROVADA → EMITIDA</b> ) <b>ou REPROVADA</b>. As transições
+são validadas pelo servidor (o enum define o que é permitido); a interface só facilita com o modal BPMN.
+Consulte o <code>README.md</code> para a tabela completa de permissões e regras.</p>
+
+<footer>
+  Gerado a partir de <code>docs/GUIA-INSTALACAO-E-USO.html</code> · A referência completa está no <code>README.md</code> do repositório.
+</footer>
+
+</body>
+</html>

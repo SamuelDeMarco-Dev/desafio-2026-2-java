@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../../auth/AuthContext";
+import { BotaoVoltar } from "../../components/BotaoVoltar";
+import { ChipSelect } from "../../components/ChipSelect";
 import { podeGerenciarCadastros } from "../../auth/permissoes";
 import {
   alterarSituacaoAluno,
@@ -128,7 +130,10 @@ export function AlunosPage() {
   return (
     <section>
       <div className="page-header">
-        <h1>Alunos</h1>
+        <div className="page-header-titulo">
+          <BotaoVoltar />
+          <h1>Alunos</h1>
+        </div>
         {gerencia && !mostrarForm && (
           <button type="button" className="botao-primario" onClick={aoNovo}>
             Novo aluno
@@ -142,11 +147,18 @@ export function AlunosPage() {
           value={filtroForm.nome}
           onChange={(e) => setFiltroForm({ ...filtroForm, nome: e.target.value })}
         />
-        <select value={filtroForm.ativo} onChange={(e) => setFiltroForm({ ...filtroForm, ativo: e.target.value })}>
-          <option value="">Ativos e inativos</option>
-          <option value="true">Somente ativos</option>
-          <option value="false">Somente inativos</option>
-        </select>
+        <ChipSelect
+            options={[
+                { value: "", label: "Ativos e inativos" },
+                { value: "true", label: "Somente ativos" },
+                { value: "false", label: "Somente inativos" },
+            ]}
+            value={filtroForm.ativo}
+            onChange={(v) => setFiltroForm({ ...filtroForm, ativo: v })}
+            nomeGrupo="Situação"
+        />
+
+
         <button type="submit">Filtrar</button>
         <button type="button" onClick={aoLimparFiltro}>
           Limpar

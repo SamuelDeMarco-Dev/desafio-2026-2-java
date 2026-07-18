@@ -8,3 +8,8 @@ export function podeGerenciarSolicitacoes(perfis: string[]): boolean {
 export function podeGerenciarCadastros(perfis: string[]): boolean {
   return perfis.some((perfil) => PERFIS_QUE_GERENCIAM_CADASTROS.includes(perfil));
 }
+
+/** Exclusões (DELETE /api/**) são sempre administrativas no backend. */
+export function podeExcluirRecursos(perfis: string[]): boolean {
+  return perfis.includes("ADMIN");
+}

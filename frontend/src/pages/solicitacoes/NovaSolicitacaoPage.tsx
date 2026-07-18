@@ -1,12 +1,19 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { podeGerenciarSolicitacoes } from "../../auth/permissoes";
+import { BotaoVoltar } from "../../components/BotaoVoltar";
+import { ChipSelect } from "../../components/ChipSelect";
+import { enviarAnexo, formatarTamanho } from "../../services/anexosApi";
 import { listarAlunosAtivos, listarCursos, listarTiposDocumento, type Opcao } from "../../services/cadastrosApi";
 import { extrairMensagemErro } from "../../services/erroApi";
 import { criarSolicitacao, type Prioridade } from "../../services/solicitacoesApi";
 
-const PRIORIDADES: Prioridade[] = ["URGENTE", "ALTA", "NORMAL"];
+const OPCOES_PRIORIDADE: { value: Prioridade; label: string }[] = [
+  { value: "NORMAL", label: "Normal" },
+  { value: "ALTA", label: "Alta" },
+  { value: "URGENTE", label: "Urgente" },
+];
 
 export function NovaSolicitacaoPage() {
   const { usuario } = useAuth();
@@ -22,8 +29,10 @@ export function NovaSolicitacaoPage() {
   const [cursoId, setCursoId] = useState("");
   const [tipoDocumentoId, setTipoDocumentoId] = useState("");
   const [prioridade, setPrioridade] = useState<Prioridade>("NORMAL");
+  const [arquivos, setArquivos] = useState<File[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const inputArquivos = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([listarAlunosAtivos(), listarCursos(), listarTiposDocumento()])
@@ -36,6 +45,20 @@ export function NovaSolicitacaoPage() {
       .finally(() => setCarregandoOpcoes(false));
   }, []);
 
+  function aoEscolherArquivos(event: ChangeEvent<HTMLInputElement>) {
+    const escolhidos = Array.from(event.target.files ?? []);
+    if (escolhidos.length > 0) {
+      setArquivos((atuais) => [...atuais, ...escolhidos]);
+    }
+    if (inputArquivos.current) {
+      inputArquivos.current.value = "";
+    }
+  }
+
+  function removerArquivo(indice: number) {
+    setArquivos((atuais) => atuais.filter((_, i) => i !== indice));
+  }
+
   async function aoEnviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErro(null);
@@ -47,6 +70,10 @@ export function NovaSolicitacaoPage() {
         tipoDocumentoId: Number(tipoDocumentoId),
         prioridade,
       });
+      // A solicitação já existe; envia os anexos escolhidos na sequência.
+      for (const arquivo of arquivos) {
+        await enviarAnexo(nova.id, arquivo);
+      }
       navigate(`/solicitacoes/${nova.id}`, { replace: true });
     } catch (e) {
       setErro(extrairMensagemErro(e, "Não foi possível criar a solicitação."));
@@ -73,7 +100,12 @@ export function NovaSolicitacaoPage() {
 
   return (
     <section>
-      <h1>Nova solicitação</h1>
+      <div className="page-header">
+        <div className="page-header-titulo">
+          <BotaoVoltar />
+          <h1>Nova solicitação</h1>
+        </div>
+      </div>
 
       <form onSubmit={aoEnviar} className="formulario">
         <label htmlFor="aluno">Aluno</label>
@@ -112,14 +144,39 @@ export function NovaSolicitacaoPage() {
           ))}
         </select>
 
-        <label htmlFor="prioridade">Prioridade</label>
-        <select id="prioridade" value={prioridade} onChange={(e) => setPrioridade(e.target.value as Prioridade)}>
-          {PRIORIDADES.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
+        <label>Prioridade</label>
+        <ChipSelect options={OPCOES_PRIORIDADE} value={prioridade} onChange={setPrioridade} nomeGrupo="Prioridade" />
+
+        <label>Documentos anexos (opcional)</label>
+        <input
+          ref={inputArquivos}
+          type="file"
+          multiple
+          onChange={aoEscolherArquivos}
+          className="input-arquivo-oculto"
+          aria-label="Escolher arquivos para anexar"
+        />
+        <button type="button" className="botao-secundario" onClick={() => inputArquivos.current?.click()}>
+          + Adicionar arquivos
+        </button>
+
+        {arquivos.length > 0 && (
+          <ul className="lista-anexos">
+            {arquivos.map((arquivo, indice) => (
+              <li key={`${arquivo.name}-${indice}`} className="anexo-item">
+                <span className="anexo-info">
+                  <span className="anexo-nome">{arquivo.name}</span>
+                  <span className="anexo-meta">{formatarTamanho(arquivo.size)}</span>
+                </span>
+                <span className="acoes">
+                  <button type="button" onClick={() => removerArquivo(indice)}>
+                    Remover
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {erro && (
           <p role="alert" className="erro-banner">

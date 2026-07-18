@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="solicitacoes" pageWidth="595" pageHeight="842"
+              columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20"
+              whenNoDataType="NoDataSection" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a01">
+
+    <parameter name="FILTROS" class="java.lang.String"/>
+    <parameter name="GERADO_EM" class="java.lang.String"/>
+
+    <field name="id" class="java.lang.String"/>
+    <field name="aluno" class="java.lang.String"/>
+    <field name="curso" class="java.lang.String"/>
+    <field name="tipoDocumento" class="java.lang.String"/>
+    <field name="status" class="java.lang.String"/>
+    <field name="prioridade" class="java.lang.String"/>
+    <field name="dataSolicitacao" class="java.lang.String"/>
+
+    <title>
+        <band height="70">
+            <staticText>
+                <reportElement x="0" y="0" width="555" height="24" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a02"/>
+                <textElement>
+                    <font size="16" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Relatório de Solicitações de Documentos]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="0" y="28" width="555" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a03"/>
+                <textElement>
+                    <font size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Gerado em: " + $P{GERADO_EM}]]></textFieldExpression>
+            </textField>
+            <textField textAdjust="StretchHeight">
+                <reportElement x="0" y="46" width="555" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a04"/>
+                <textElement>
+                    <font size="9"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Filtros: " + $P{FILTROS}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <columnHeader>
+        <band height="22">
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="0" y="0" width="30" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a05"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ID]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="30" y="0" width="110" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a06"/>
+                <textElement verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ Aluno]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="140" y="0" width="95" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a07"/>
+                <textElement verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ Curso]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="235" y="0" width="95" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a08"/>
+                <textElement verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ Tipo de documento]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="330" y="0" width="75" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a09"/>
+                <textElement verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ Status]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="405" y="0" width="55" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a10"/>
+                <textElement verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ Prioridade]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Opaque" backcolor="#1A3C6E" forecolor="#FFFFFF" x="460" y="0" width="95" height="20" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a11"/>
+                <textElement verticalAlignment="Middle"><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[ Solicitada]]></text>
+            </staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <textField>
+                <reportElement x="0" y="0" width="30" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a12"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[$F{id}]]></textFieldExpression>
+            </textField>
+            <textField textAdjust="StretchHeight">
+                <reportElement x="30" y="0" width="110" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a13"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[" " + $F{aluno}]]></textFieldExpression>
+            </textField>
+            <textField textAdjust="StretchHeight">
+                <reportElement x="140" y="0" width="95" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a14"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[" " + $F{curso}]]></textFieldExpression>
+            </textField>
+            <textField textAdjust="StretchHeight">
+                <reportElement x="235" y="0" width="95" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a15"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[" " + $F{tipoDocumento}]]></textFieldExpression>
+            </textField>
+            <textField textAdjust="StretchHeight">
+                <reportElement x="330" y="0" width="75" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a16"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[" " + $F{status}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="405" y="0" width="55" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a17"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[" " + $F{prioridade}]]></textFieldExpression>
+            </textField>
+            <textField textAdjust="StretchHeight">
+                <reportElement x="460" y="0" width="95" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a18"/>
+                <textElement verticalAlignment="Middle"><font size="9"/></textElement>
+                <textFieldExpression><![CDATA[" " + $F{dataSolicitacao}]]></textFieldExpression>
+            </textField>
+            <line>
+                <reportElement positionType="Float" x="0" y="17" width="555" height="1" forecolor="#DDDDDD" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a19"/>
+            </line>
+        </band>
+    </detail>
+
+    <pageFooter>
+        <band height="18">
+            <textField>
+                <reportElement x="455" y="0" width="100" height="14" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a20"/>
+                <textElement textAlignment="Right"><font size="8"/></textElement>
+                <textFieldExpression><![CDATA["Página " + $V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+
+    <summary>
+        <band height="24">
+            <textField>
+                <reportElement x="0" y="6" width="300" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a21"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA["Total de solicitações: " + $V{REPORT_COUNT}]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+
+    <noData>
+        <band height="30">
+            <staticText>
+                <reportElement x="0" y="8" width="555" height="16" uuid="0e1b3a52-6f0e-4d3c-9a44-3b9b1c6a5a22"/>
+                <textElement><font size="10"/></textElement>
+                <text><![CDATA[Nenhuma solicitação encontrada para os filtros informados.]]></text>
+            </staticText>
+        </band>
+    </noData>
+</jasperReport>

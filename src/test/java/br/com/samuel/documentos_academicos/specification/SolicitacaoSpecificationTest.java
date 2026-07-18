@@ -43,6 +43,14 @@ class SolicitacaoSpecificationTest {
         salvar(alunoRepository.save(aluno("Maria")), direito, hist, aberta, Prioridade.NORMAL);
     }
 
+    private Status statusFinalizado() {
+        Status s = new Status();
+        s.setCodigo("EMITIDA");
+        s.setNome("Emitida");
+        s.setFinalizaSolicitacao(true);
+        return s;
+    }
+
     @Test
     void filtraPorNomeDoAlunoParcialIgnoreCase() {
         var filtro = new SolicitacaoFiltro("sam", null, null, null, null, null, null);
@@ -70,6 +78,32 @@ class SolicitacaoSpecificationTest {
         var filtro = new SolicitacaoFiltro(null, null, null, null, null, null, null);
         var page = solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(filtro), PageRequest.of(0, 10));
         assertEquals(2, page.getTotalElements());
+    }
+
+    @Test
+    void semFiltroDeStatus_ocultaSolicitacoesEncerradas() {
+        Status emitida = statusRepository.save(statusFinalizado());
+        Curso curso = cursoRepository.findAll().get(0);
+        TipoDocumento tipo = tipoDocumentoRepository.findAll().get(0);
+        salvar(alunoRepository.save(aluno("Pedro")), curso, tipo, emitida, Prioridade.NORMAL);
+
+        var semFiltro = new SolicitacaoFiltro(null, null, null, null, null, null, null);
+        var page = solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(semFiltro), PageRequest.of(0, 10));
+        assertEquals(2, page.getTotalElements(), "a encerrada não deve aparecer sem filtro de status");
+
+        var filtrandoEmitida = new SolicitacaoFiltro(null, null, null, "EMITIDA", null, null, null);
+        var pageEmitida = solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(filtrandoEmitida),
+                PageRequest.of(0, 10));
+        assertEquals(1, pageEmitida.getTotalElements(), "filtrando pelo status, a encerrada aparece");
+    }
+
+    @Test
+    void ordenacaoPadraoEPorPrioridadeDepoisMaisRecente() {
+        var filtro = new SolicitacaoFiltro(null, null, null, null, null, null, null);
+        var page = solicitacaoRepository.findAll(SolicitacaoSpecification.comFiltros(filtro), PageRequest.of(0, 10));
+        assertEquals(Prioridade.URGENTE, page.getContent().get(0).getPrioridade(),
+                "URGENTE vem antes de NORMAL na ordenação padrão");
+        assertEquals(Prioridade.NORMAL, page.getContent().get(1).getPrioridade());
     }
 
     // ----- helpers -----

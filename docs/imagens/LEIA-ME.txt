@@ -1,0 +1,21 @@
+Coloque aqui os screenshots do sistema, salvando cada um com EXATAMENTE
+o nome de arquivo abaixo (PNG). Quando o arquivo existir, ele aparece
+automaticamente no lugar do quadro pontilhado ao gerar o PDF de novo.
+
+  01-login.png            Tela de login
+  02-dashboard.png        Dashboard com os indicadores (cards + graficos)
+  03-nova-solicitacao.png Formulario de nova solicitacao (chips/botoes)
+  04-listagem.png         Listagem de solicitacoes
+  05-fluxo-bpmn.png       Modal do fluxo (BPMN) com a etapa atual
+  06-detalhe.png          Detalhe da solicitacao com anexos
+  07-relatorio-pdf.png    Relatorio PDF aberto
+  08-cadastros.png        Tela de cadastros basicos
+  09-tema-escuro.png      Aplicacao no modo escuro
+  10-swagger.png          Swagger UI aberto
+  11-swagger-authorize.png Botao Authorize do Swagger com o token
+
+Como capturar no Windows: tecla  Win + Shift + S  (recorte), cole no
+Paint e salve como PNG nesta pasta com o nome indicado.
+
+Depois de adicionar as imagens, gere o PDF de novo:
+  powershell -ExecutionPolicy Bypass -File docs\gerar-pdf.ps1

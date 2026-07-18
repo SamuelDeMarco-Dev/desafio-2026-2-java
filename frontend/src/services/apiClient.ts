@@ -22,7 +22,7 @@ export const api = axios.create({
 // JwtAuthenticationFilter do backend rejeita com 401 QUALQUER requisição cujo
 // header Authorization seja inválido/expirado, mesmo em rota pública — por
 // isso nunca anexamos um token velho aqui, ou a própria tela de login quebraria.
-const ROTAS_PUBLICAS = ["/api/auth/login"];
+const ROTAS_PUBLICAS = ["/api/auth/login", "/api/auth/esqueci-senha", "/api/auth/redefinir-senha"];
 
 api.interceptors.request.use((config) => {
   const rotaPublica = ROTAS_PUBLICAS.some((rota) => config.url?.startsWith(rota));

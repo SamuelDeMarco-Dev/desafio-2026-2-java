@@ -38,6 +38,15 @@ public class Usuario {
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
 
+    /** Hash do código de recuperação de senha — nunca o código em texto puro. */
+    @NotAudited
+    @Column(name = "recuperacao_token_hash", length = 100)
+    private String recuperacaoTokenHash;
+
+    @NotAudited
+    @Column(name = "recuperacao_expira_em")
+    private java.time.LocalDateTime recuperacaoExpiraEm;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "usuario_perfil", joinColumns = @JoinColumn(name = "usuario_id"))
     @Column(name = "perfil", nullable = false, length = 20)

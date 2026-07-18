@@ -240,11 +240,11 @@ class FluxoPrincipalIT extends IntegracaoPostgresTest {
     void migrationsForamAplicadas() {
         Integer aplicadas = jdbc.queryForObject(
                 "select count(*) from flyway_schema_history where success = true", Integer.class);
-        assertTrue(aplicadas != null && aplicadas >= 6, "esperado V1..V6 aplicadas, veio " + aplicadas);
+        assertTrue(aplicadas != null && aplicadas >= 8, "esperado V1..V8 aplicadas, veio " + aplicadas);
 
         String versao = jdbc.queryForObject(
                 "select version from flyway_schema_history order by installed_rank desc limit 1", String.class);
-        assertEquals("6", versao);
+        assertEquals("8", versao);
     }
 
     // ----- helpers -----

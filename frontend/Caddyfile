@@ -1,0 +1,29 @@
+# Configuração do proxy reverso + servidor estático (produção).
+# DOMAIN e ACME_EMAIL vêm de variáveis de ambiente do container.
+
+{
+	email {$ACME_EMAIL}
+}
+
+# Redireciona www -> domínio raiz (ambos precisam ter registro A apontando para a VPS).
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# Chamadas à API vão para o container do backend na rede interna do compose.
+	# O caminho /api é preservado (o backend espera /api/...).
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# SPA: arquivos estáticos com fallback para index.html, para que as rotas do
+	# React Router (ex.: /solicitacoes) funcionem ao recarregar a página.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

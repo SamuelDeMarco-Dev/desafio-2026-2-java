@@ -6,7 +6,6 @@ import java.util.List;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -88,12 +87,14 @@ public class SolicitacaoController {
 
     @Operation(summary = "Lista solicitações com filtros e paginação",
                description = "Todos os filtros são opcionais e podem ser combinados; "
-                           + "os não informados são ignorados.")
+                           + "os não informados são ignorados. Sem filtro de `status`, "
+                           + "solicitações encerradas ficam fora do resultado. Ordenação "
+                           + "padrão: prioridade (URGENTE > ALTA > NORMAL) e depois a mais "
+                           + "recente; um `sort` explícito substitui esse padrão.")
     @GetMapping
     public PageResponse<SolicitacaoResumoResponse> listar(
             @ParameterObject SolicitacaoFiltro filtro,
-            @ParameterObject @PageableDefault(size = 20, sort = "dataSolicitacao",
-                                              direction = Sort.Direction.DESC) Pageable pageable) {
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<SolicitacaoResumoResponse> page = solicitacaoService.listar(filtro, pageable);
         return PageResponse.from(page);
     }

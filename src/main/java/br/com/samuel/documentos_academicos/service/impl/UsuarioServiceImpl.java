@@ -2,10 +2,13 @@ package br.com.samuel.documentos_academicos.service.impl;
 
 import java.util.HashSet;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.samuel.documentos_academicos.dto.request.UsuarioAtualizacaoRequest;
 import br.com.samuel.documentos_academicos.dto.request.UsuarioRequest;
 import br.com.samuel.documentos_academicos.dto.response.UsuarioResponse;
 import br.com.samuel.documentos_academicos.entity.Usuario;
@@ -14,6 +17,7 @@ import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoExcepti
 import br.com.samuel.documentos_academicos.mapper.UsuarioMapper;
 import br.com.samuel.documentos_academicos.repository.UsuarioRepository;
 import br.com.samuel.documentos_academicos.service.UsuarioService;
+import br.com.samuel.documentos_academicos.specification.UsuarioSpecification;
 
 @Service
 @Transactional(readOnly = true)
@@ -58,6 +62,28 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     public UsuarioResponse buscarPorId(Long id) {
         return usuarioMapper.toResponse(buscarEntidade(id));
+    }
+
+    @Override
+    public Page<UsuarioResponse> listar(String nome, Boolean ativo, Pageable pageable) {
+        return usuarioRepository.findAll(UsuarioSpecification.comFiltros(nome, ativo), pageable)
+                .map(usuarioMapper::toResponse);
+    }
+
+    @Override
+    @Transactional
+    public UsuarioResponse atualizar(Long id, UsuarioAtualizacaoRequest request) {
+        Usuario usuario = buscarEntidade(id);
+        if (request.codigoResponsavel() != null
+                && !request.codigoResponsavel().equals(usuario.getCodigoResponsavel())
+                && usuarioRepository.existsByCodigoResponsavel(request.codigoResponsavel())) {
+            throw new RecursoDuplicadoException(
+                    "Já existe um usuário com o código de responsável " + request.codigoResponsavel());
+        }
+        usuario.setNome(request.nome());
+        usuario.setCodigoResponsavel(request.codigoResponsavel());
+        usuario.setPerfis(new HashSet<>(request.perfis()));
+        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
     }
 
     @Override

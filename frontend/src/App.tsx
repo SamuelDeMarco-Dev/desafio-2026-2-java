@@ -1,5 +1,7 @@
 import { Route, Routes } from "react-router-dom";
+import "./App.css";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { RotaAdmin } from "./auth/RotaAdmin";
 import { MainLayout } from "./layouts/MainLayout";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { AlunosPage } from "./pages/cadastros/AlunosPage";
@@ -25,12 +27,14 @@ export function App() {
           <Route path="solicitacoes" element={<SolicitacoesListPage />} />
           <Route path="solicitacoes/nova" element={<NovaSolicitacaoPage />} />
           <Route path="solicitacoes/:id" element={<SolicitacaoDetalhePage />} />
-          <Route path="cadastros" element={<CadastrosIndexPage />} />
-          <Route path="cadastros/alunos" element={<AlunosPage />} />
-          <Route path="cadastros/cursos" element={<CursosPage />} />
-          <Route path="cadastros/tipos-documento" element={<TiposDocumentoPage />} />
-          <Route path="cadastros/status" element={<StatusPage />} />
-          <Route path="cadastros/usuarios" element={<UsuariosPage />} />
+          <Route element={<RotaAdmin />}>
+            <Route path="cadastros" element={<CadastrosIndexPage />} />
+            <Route path="cadastros/alunos" element={<AlunosPage />} />
+            <Route path="cadastros/cursos" element={<CursosPage />} />
+            <Route path="cadastros/tipos-documento" element={<TiposDocumentoPage />} />
+            <Route path="cadastros/status" element={<StatusPage />} />
+            <Route path="cadastros/usuarios" element={<UsuariosPage />} />
+          </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Route>
