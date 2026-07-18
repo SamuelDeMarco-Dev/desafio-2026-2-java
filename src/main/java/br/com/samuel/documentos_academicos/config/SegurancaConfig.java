@@ -67,7 +67,8 @@ public class SegurancaConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // --- públicos ---
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login",
+                                "/api/auth/esqueci-senha", "/api/auth/redefinir-senha").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(ROTAS_DOCUMENTACAO).permitAll()
 
@@ -77,11 +78,13 @@ public class SegurancaConfig {
 
                         // --- cadastros: escrita é administrativa ---
                         .requestMatchers(HttpMethod.POST, "/api/alunos/**", "/api/cursos/**",
-                                "/api/tipos-documento/**").hasRole("ADMIN")
+                                "/api/tipos-documento/**", "/api/usuarios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/alunos/**", "/api/cursos/**",
-                                "/api/tipos-documento/**").hasRole("ADMIN")
+                                "/api/tipos-documento/**", "/api/usuarios/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/alunos/**", "/api/cursos/**",
-                                "/api/tipos-documento/**").hasRole("ADMIN")
+                                "/api/tipos-documento/**", "/api/usuarios/**").hasRole("ADMIN")
+
+
 
                         // --- toda exclusão é administrativa ---
                         .requestMatchers(HttpMethod.DELETE, "/api/**").hasRole("ADMIN")

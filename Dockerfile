@@ -17,6 +17,12 @@ RUN ./mvnw -B clean package
 # Etapa 2: executar a aplicação
 FROM eclipse-temurin:21-jre
 
+# JasperReports usa AWT para medir texto: sem fontconfig + uma fonte TTF
+# instaladas, a geração de PDF falha em imagens JRE enxutas.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY --from=build /workspace/target/*.jar app.jar

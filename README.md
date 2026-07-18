@@ -1,19 +1,31 @@
 # Sistema de Gestão de Solicitações de Documentos Acadêmicos
 
-API REST para cadastro, consulta e movimentação de solicitações de documentos
-acadêmicos (histórico, diploma, atestado de matrícula, etc.).
+Aplicação full-stack para cadastro, consulta e movimentação de solicitações de
+documentos acadêmicos (histórico, diploma, atestado de matrícula, etc.):
+**API REST** em Java/Spring Boot e **interface web** em React/TypeScript.
 
-> **Status:** em desenvolvimento. Já implementados: infraestrutura (banco,
-> migrations, Docker, perfis), o domínio JPA completo, contratos (DTOs) com
-> validação, tratamento global de erros, os CRUDs de **alunos, cursos, tipos de
-> documento e status**, o **cadastro e a consulta de solicitações** (filtros
-> dinâmicos + paginação), os **indicadores do dashboard**, a **autenticação via
-> JWT com autorização por perfil**, o **fluxo de movimentação de status** e o
-> **histórico de movimentações**, a **auditoria de todas as entidades** (Hibernate
-> Envers), a **documentação interativa** (Swagger / OpenAPI) e a bateria de
-> **testes unitários + integração com PostgreSQL real** (Testcontainers), com
-> análise estática no build. Pendente: CRUD de usuários via API. Veja o
+> **Status: funcional de ponta a ponta.** Backend: CRUDs completos (alunos,
+> cursos, tipos de documento, status, usuários), solicitações com filtros
+> dinâmicos, fluxo de status com histórico, **anexos de documentos**,
+> autenticação JWT com **recuperação de senha**, auditoria (Hibernate Envers),
+> **relatórios PDF** (JasperReports), Swagger, testes unitários + integração
+> (Testcontainers) e análise estática. Frontend: login, gestão de solicitações
+> (com anexos e visualização do fluxo em diagrama), dashboard de indicadores,
+> telas de cadastro, tema claro/escuro e geração de PDF pela interface. Veja o
 > [Roadmap](#roadmap).
+
+**Sumário rápido:** [Pré-requisitos](#pré-requisitos) ·
+[Variáveis de ambiente](#variáveis-de-ambiente) ·
+[Como executar](#como-executar) · [Testes](#testes) ·
+[Swagger](#documentação-interativa-swagger) ·
+[Fluxo de status](#fluxo-de-status) ·
+[Limitações e decisões técnicas](#limitações-conhecidas-e-decisões-técnicas)
+
+> 📘 **Guia ilustrado (PDF):** para um passo a passo enxuto e com espaço para os
+> prints das telas, veja [`docs/GUIA-INSTALACAO-E-USO.pdf`](docs/GUIA-INSTALACAO-E-USO.pdf).
+> Para regenerá-lo depois de adicionar as imagens em [`docs/imagens/`](docs/imagens/),
+> rode `powershell -ExecutionPolicy Bypass -File docs\gerar-pdf.ps1` (usa o Edge/Chrome já
+> instalado, sem dependências extras).
 
 ---
 
@@ -37,10 +49,44 @@ acadêmicos (histórico, diploma, atestado de matrícula, etc.).
 | Flyway | — | Versionamento do banco (migrations) |
 | H2 | — | Banco em memória (testes unitários) |
 | Testcontainers | — | PostgreSQL real nos testes de integração |
+| JasperReports | 6.21.5 | Relatórios PDF |
 | SpotBugs | 4.8.6.6 | Análise estática (roda no `verify`) |
 | Lombok | — | Redução de boilerplate nas entidades |
 | Maven | — | Build e dependências |
 | Docker / Docker Compose | — | Containerização e orquestração |
+| React | 19 | Interface web (SPA) |
+| TypeScript | 6 | Tipagem estática do frontend |
+| Vite | 8 | Dev server e build do frontend |
+| react-router-dom | 7 | Roteamento da SPA |
+| Axios | 1.x | Cliente HTTP (interceptors de token/401) |
+| Recharts | 3.x | Gráficos do dashboard |
+
+---
+
+## Pré-requisitos
+
+### Para rodar com Docker (recomendado)
+
+| Requisito | Versão mínima | Verificação |
+|---|---|---|
+| Docker + Docker Compose | Docker 24+ (Compose v2) | `docker compose version` |
+| Node.js + npm (para o frontend) | Node 20+ | `node --version` |
+| Git | qualquer recente | `git --version` |
+
+> O **backend não exige Java instalado** neste modo: o build acontece dentro da
+> imagem (multi-stage). O frontend roda no host com o dev server do Vite.
+
+### Para rodar sem Docker
+
+| Requisito | Versão mínima | Verificação |
+|---|---|---|
+| JDK | 21 | `java --version` |
+| PostgreSQL | 17 (recomendado; 15+ funciona) | `psql --version` |
+| Node.js + npm | Node 20+ | `node --version` |
+
+O Maven não precisa ser instalado — o projeto inclui o wrapper (`./mvnw` /
+`mvnw.cmd`). Os testes de integração (`./mvnw verify`) exigem Docker no ar em
+**ambos** os modos, porque usam Testcontainers.
 
 ---
 
@@ -72,19 +118,32 @@ desafio-2026-2-java/
 │   │       ├── application.properties                 # config base
 │   │       ├── application-dev.properties             # perfil dev
 │   │       ├── application-prod.properties            # perfil prod
+│   │       ├── relatorios/solicitacoes.jrxml          # template JasperReports (PDF)
 │   │       └── db/migrations/                         # migrations Flyway
 │   │           ├── V1__create_initial_schema.sql
 │   │           ├── V2__insert_initial_statuses.sql
 │   │           ├── V3__create_usuario_tables.sql
 │   │           ├── V4__add_version_to_solicitacao.sql
 │   │           ├── V5__create_historico_status.sql
-│   │           └── V6__create_audit_tables.sql
+│   │           ├── V6__create_audit_tables.sql
+│   │           ├── V7__create_solicitacao_anexo.sql
+│   │           └── V8__add_recuperacao_senha_usuario.sql
 │   └── test/
 │       ├── java/.../                                  # @WebMvcTest, @DataJpaTest, Mockito
 │       └── resources/application-test.properties      # perfil de teste (H2)
-├── Dockerfile                                         # build multi-stage
+├── frontend/                                          # SPA React + TypeScript (Vite)
+│   ├── src/
+│   │   ├── auth/                                      # sessão, contexto, guardas de rota, permissões
+│   │   ├── components/                                # ChipSelect, Modal, BPMN, anexos, voltar
+│   │   ├── layouts/MainLayout.tsx                     # sidebar + topbar
+│   │   ├── pages/                                     # login, dashboard, solicitações, cadastros
+│   │   ├── services/                                  # cliente Axios + APIs tipadas por recurso
+│   │   └── tema/                                      # modo claro/escuro persistido
+│   ├── .env.example                                   # modelo (VITE_API_URL)
+│   └── package.json
+├── Dockerfile                                         # build multi-stage (backend)
 ├── docker-compose.yml                                 # PostgreSQL + API
-├── .env.example                                       # modelo de variáveis
+├── .env.example                                       # modelo de variáveis (backend)
 ├── mvnw / mvnw.cmd                                    # Maven Wrapper
 └── pom.xml
 ```
@@ -95,8 +154,9 @@ desafio-2026-2-java/
 
 O schema é versionado pelo Flyway: `V1` cria a estrutura inicial, `V2` popula os
 status do fluxo, `V3` cria as tabelas de usuário, `V4` adiciona o controle de
-concorrência na solicitação, `V5` cria o histórico de movimentações e `V6` cria
-as tabelas de auditoria.
+concorrência na solicitação, `V5` cria o histórico de movimentações, `V6` cria
+as tabelas de auditoria, `V7` cria os anexos das solicitações e `V8` adiciona as
+colunas de recuperação de senha.
 
 > Como o `ddl-auto` é `validate`, **o Flyway precisa criar até as tabelas do
 > Envers** — o Hibernate valida o schema de auditoria junto com o resto e não
@@ -114,6 +174,7 @@ as tabelas de auditoria.
 | `usuario` | Usuários do sistema (`login` único, senha BCrypt, `codigo_responsavel` único) |
 | `usuario_perfil` | Perfis de cada usuário (`ADMIN`, `OPERADOR`, `CONSULTA`) |
 | `historico_status` | Movimentações de status (de → para, quando, por quem) |
+| `solicitacao_anexo` | Documentos anexados à solicitação (conteúdo em `bytea`, máx. 10MB) |
 | `revinfo` | Uma linha por transação auditada (revisão, data, login do autor) |
 | `<tabela>_aud` | Versões de cada entidade auditada (7 tabelas) |
 
@@ -141,9 +202,10 @@ A `historico_status` é *append-only*: uma linha por movimentação, com
 
 ## API REST
 
-> Todos os endpoints exigem autenticação, exceto `POST /api/auth/login`, o health
-> check e a documentação. Os corpos de request/response usam DTOs (nunca as
-> entidades diretamente) — nenhuma resposta expõe senha ou hash.
+> Todos os endpoints exigem autenticação, exceto os de `/api/auth` (login e
+> recuperação de senha), o health check e a documentação. Os corpos de
+> request/response usam DTOs (nunca as entidades diretamente) — nenhuma resposta
+> expõe senha ou hash.
 
 ### Documentação interativa (Swagger)
 
@@ -174,6 +236,8 @@ documento e falha se algum endpoint ficar sem descrição.
 | Método | Rota | Descrição |
 |---|---|---|
 | `POST` | `/api/auth/login` | Autentica e devolve o token JWT (**público**) |
+| `POST` | `/api/auth/esqueci-senha` | Gera código de recuperação de senha (**público**) |
+| `POST` | `/api/auth/redefinir-senha` | Redefine a senha com o código (**público**) |
 
 ```json
 { "login": "administrador", "senha": "sua-senha" }
@@ -195,6 +259,19 @@ Detalhes da implementação:
   ou em log** — se `ADMIN_PASSWORD` não for definida, a criação é ignorada com um
   aviso.
 
+**Recuperação de senha** (autosserviço): `POST /api/auth/esqueci-senha` com
+`{ "login": "..." }` gera um código de **6 dígitos**, válido por **15 minutos** e
+de **uso único** (apenas o hash BCrypt fica no banco). Em seguida,
+`POST /api/auth/redefinir-senha` com `{ "login", "codigo", "novaSenha" }` troca a
+senha (mínimo 8 caracteres). Código errado, expirado ou reutilizado → **422**;
+login inexistente ou inativo recebe a resposta genérica, sem código.
+
+> **Limitação assumida:** o projeto não tem serviço de e-mail, então o código
+> volta **na própria resposta** do `esqueci-senha` (campo `codigoRecuperacao`).
+> Em produção esse campo viria nulo e o código seguiria por e-mail — a
+> arquitetura (hash + validade + uso único) já é a definitiva; só o canal de
+> entrega é simulado.
+
 ### Perfis e permissões
 
 | Perfil | Pode |
@@ -205,10 +282,14 @@ Detalhes da implementação:
 
 | Operação | Perfis autorizados |
 |---|---|
-| `POST` / `PUT` em cadastros e status | `ADMIN` |
+| `POST` / `PUT` / `PATCH` em cadastros (alunos, cursos, tipos, status, usuários) | `ADMIN` |
 | `DELETE` em `/api/**` | `ADMIN` |
-| `POST` e `PATCH` em `/api/solicitacoes` | `ADMIN`, `OPERADOR` |
-| `GET` em `/api/**` | Qualquer usuário autenticado |
+| `POST` e `PATCH` em `/api/solicitacoes` (inclui anexos) | `ADMIN`, `OPERADOR` |
+| `GET` em `/api/**` (inclui relatórios PDF) | Qualquer usuário autenticado |
+
+> Na **interface web**, a seção Cadastros só aparece (e só é navegável) para
+> `ADMIN`. Isso é conveniência de UI — a regra que vale é a do backend acima,
+> aplicada mesmo se alguém chamar a API diretamente.
 
 ### Alunos — `/api/alunos`
 
@@ -250,6 +331,21 @@ referencial no *delete*): `POST`, `GET`, `GET/{id}`, `PUT/{id}`, `DELETE/{id}`.
 Os status estruturais (`ABERTA`, `EM_ANALISE`, `APROVADA`, `EMITIDA`,
 `REPROVADA`) não podem ser excluídos nem ter o código/finalização alterados.
 
+### Usuários — `/api/usuarios`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/usuarios` | Cadastra usuário (login e código de responsável **únicos**) |
+| `GET` | `/api/usuarios` | Lista paginada; filtros opcionais `?nome=` e `?ativo=` |
+| `GET` | `/api/usuarios/{id}` | Consulta por id |
+| `PUT` | `/api/usuarios/{id}` | Atualiza nome, código de responsável e perfis (**não** altera login/senha) |
+| `PATCH` | `/api/usuarios/{id}/ativo` | Ativa/inativa (inativo não consegue autenticar) |
+
+Não há `DELETE` de usuário — por design, contas são inativadas, nunca removidas
+(preserva a integridade do histórico de movimentações e da auditoria). Nenhuma
+resposta expõe senha ou hash; a criação exige senha de 8 a 72 caracteres e ao
+menos um perfil.
+
 ### Solicitações — `/api/solicitacoes`
 
 | Método | Rota | Descrição |
@@ -259,6 +355,10 @@ Os status estruturais (`ABERTA`, `EM_ANALISE`, `APROVADA`, `EMITIDA`,
 | `GET` | `/api/solicitacoes/{id}` | Consulta detalhada (dados das entidades relacionadas) |
 | `PATCH` | `/api/solicitacoes/{id}/status` | Movimenta a solicitação no fluxo |
 | `GET` | `/api/solicitacoes/{id}/historico` | Histórico completo de movimentações |
+| `POST` | `/api/solicitacoes/{id}/anexos` | Anexa um documento (multipart, campo `arquivo`, máx. **10MB**) |
+| `GET` | `/api/solicitacoes/{id}/anexos` | Lista os anexos (só metadados) |
+| `GET` | `/api/solicitacoes/{id}/anexos/{anexoId}` | Baixa o conteúdo do anexo |
+| `DELETE` | `/api/solicitacoes/{id}/anexos/{anexoId}` | Exclui o anexo (`ADMIN`) |
 
 **Criação** — o cliente informa apenas as referências e a prioridade:
 
@@ -291,6 +391,17 @@ não informados são ignorados):
 | `status` | Código do status (ex.: `ABERTA`) |
 | `prioridade` | `URGENTE`, `ALTA` ou `NORMAL` |
 | `dataInicio` / `dataFim` | Intervalo de `dataSolicitacao` (ISO `yyyy-MM-dd`, **fim inclusivo**) |
+
+**Comportamento padrão da listagem** (sem `?sort=` explícito):
+
+- **Ordenação por prioridade** — `URGENTE` → `ALTA` → `NORMAL` e, dentro da
+  mesma prioridade, a mais recente primeiro. Como a prioridade é gravada como
+  texto, a ordem vem de um `CASE` na consulta (ordenar a coluna daria ordem
+  alfabética).
+- **Solicitações encerradas ficam fora** — sem filtro de `status`, as que estão
+  em status finalizador (`EMITIDA`, `REPROVADA`) não aparecem; para vê-las,
+  filtre pelo status explicitamente (ex.: `?status=EMITIDA`).
+- Um `?sort=` explícito substitui a ordenação padrão.
 
 Exemplo:
 
@@ -326,6 +437,21 @@ mais (**422**). Regras aplicadas, nesta ordem:
 
 Ao aplicar, o servidor atualiza `dataAlteracao` e preenche `dataEmissao`
 **somente** quando o destino é `EMITIDA` (em `REPROVADA` ela permanece nula).
+
+Detalhes que sustentam o fluxo:
+
+- As transições são definidas no enum `CodigoStatus.transicoesPermitidas()` —
+  código, não configuração: mudar o fluxo exige mudar (e testar) o enum.
+- Um status pode ter um **responsável** (`responsavel` na tabela): quando
+  preenchido, só o usuário com aquele `codigoResponsavel` movimenta a
+  solicitação **para** aquele status.
+- Status **customizados** podem ser criados via `/api/status`, mas não entram
+  nas transições do fluxo estrutural — servem para relatório/consulta.
+- Na **interface web**, o botão "Ver fluxo" (no detalhe e na listagem) abre um
+  diagrama estilo BPMN com a etapa atual destacada; a tela também esconde o
+  formulário de movimentação em solicitações finalizadas e marca como
+  "(restrito)" os destinos com responsável de outro usuário — sempre como
+  conveniência: a validação que vale é a do servidor.
 
 ### Histórico de movimentações
 
@@ -376,6 +502,29 @@ preenchida) e é retornado em dias (fracionário):
 
 As consultas de indicadores usam agregações no banco projetadas diretamente em
 DTOs — não carregam entidades completas.
+
+### Relatórios PDF — `/api/relatorios`
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `GET` | `/api/relatorios/solicitacoes` | Relatório PDF das solicitações (download) |
+
+Gerado com **JasperReports** a partir do template
+`src/main/resources/relatorios/solicitacoes.jrxml` (compilado uma única vez e
+reaproveitado). Aceita **exatamente os mesmos filtros da listagem** — a mesma
+`Specification` é reutilizada, então o PDF reflete o que a tela mostra,
+incluindo a ordenação por prioridade e a regra de encerradas. O cabeçalho do
+relatório imprime a data de geração e os filtros aplicados; o rodapé traz o
+total.
+
+```bash
+# exemplo com curl (token obtido no login)
+curl -o relatorio.pdf "http://localhost:8080/api/relatorios/solicitacoes?status=EMITIDA" \
+     -H "Authorization: Bearer $TOKEN"
+```
+
+Na interface, o botão **"Gerar PDF"** na tela de Solicitações baixa o relatório
+com os filtros aplicados no momento.
 
 ### Paginação
 
@@ -525,37 +674,131 @@ Três pontos de segurança que valem atenção:
   (com aviso no log). A senha nunca é gravada em código, migration ou log.
 - **`CORS_ORIGENS` nunca deve receber `*`.** Liste as origens explicitamente.
 
+### Frontend
+
+O frontend tem seu próprio arquivo de ambiente. Copie o modelo (**execute o
+comando** — não cole o texto dele dentro do arquivo):
+
+```bash
+cd frontend
+cp .env.example .env      # Windows (PowerShell): Copy-Item .env.example .env
+```
+
+| Variável | Descrição | Exemplo |
+|---|---|---|
+| `VITE_API_URL` | URL base da API para o navegador | `http://localhost:8080` |
+
+O cliente HTTP falha na inicialização, com mensagem explícita, se `VITE_API_URL`
+não estiver definida — melhor que erros de rede silenciosos apontando para
+`undefined`.
+
 ---
 
 ## Como executar
 
-### Com Docker (recomendado)
+O caminho completo, do clone ao navegador. Os comandos assumem o terminal na
+raiz do repositório; no Windows, use `mvnw.cmd` no lugar de `./mvnw` (os
+comandos `docker`, `npm` e `cp`/`Copy-Item` valem igual).
 
-Sobe o PostgreSQL e a API juntos:
+### Passo 0 — preparar as variáveis (uma única vez)
 
 ```bash
-docker compose up --build
+git clone <url-do-repositorio> && cd desafio-2026-2-java
+
+# backend
+cp .env.example .env
+# edite o .env: defina DB_PASSWORD, JWT_SECRET (>= 32 caracteres) e ADMIN_PASSWORD
+
+# frontend
+cd frontend && cp .env.example .env && cd ..
 ```
 
-- API disponível em `http://localhost:8080`
+> Sem `JWT_SECRET` a API **não sobe**; sem `ADMIN_PASSWORD` ela sobe, mas **sem
+> nenhum usuário** — defina os dois antes do primeiro start.
+
+### Opção A — backend com Docker (recomendado)
+
+Sobe o PostgreSQL e a API juntos; o build do backend acontece dentro da imagem
+(não precisa de Java no host):
+
+```bash
+docker compose up --build -d
+```
+
+- API em `http://localhost:8080` — confirme com
+  `curl http://localhost:8080/actuator/health` (deve responder `{"status":"UP"...}`)
 - PostgreSQL exposto na porta `5433` do host (5432 dentro da rede do Docker)
+- O serviço `api` só inicia após o PostgreSQL passar no *health check*; as
+  migrations do Flyway (`V1..V8`) são aplicadas automaticamente no startup
 
-O serviço `api` só inicia após o PostgreSQL passar no *health check*, e as
-migrations do Flyway são aplicadas automaticamente no startup da aplicação.
-
-Para parar e remover também o volume do banco (recomeço limpo):
+Comandos úteis:
 
 ```bash
-docker compose down -v
+docker compose logs -f api    # acompanhar o log da API
+docker compose down           # parar (preserva os dados)
+docker compose down -v        # parar e apagar o volume do banco (recomeço limpo)
 ```
 
-### Localmente (sem Docker)
+### Opção B — backend sem Docker
 
-Requer um PostgreSQL rodando e acessível via `DB_URL`, além de Java 21.
+Requer JDK 21 e um PostgreSQL local. Prepare o banco uma vez (os nomes devem
+bater com o seu `.env`):
+
+```sql
+-- psql como superusuário:
+CREATE USER documentos_app WITH PASSWORD 'a_mesma_senha_do_env';
+CREATE DATABASE documentos_academicos OWNER documentos_app;
+```
+
+Confira no `.env` que `DB_URL` aponta para o seu PostgreSQL local
+(`jdbc:postgresql://localhost:5432/documentos_academicos`). Atenção: **o Spring
+Boot não lê o arquivo `.env` sozinho** (quem faz isso é o Docker Compose) — ao
+rodar sem Docker, exporte as variáveis no shell antes de subir. No Git
+Bash/Linux/macOS:
 
 ```bash
+set -a; source .env; set +a
 ./mvnw spring-boot:run
 ```
+
+No PowerShell:
+
+```powershell
+Get-Content .env | Where-Object { $_ -match '^[^#].*=' } | ForEach-Object {
+  $par = $_ -split '=', 2; Set-Item -Path "Env:$($par[0])" -Value $par[1]
+}
+.\mvnw.cmd spring-boot:run
+```
+
+O Flyway aplica as migrations no startup — não execute SQL de schema na mão.
+
+### Frontend (igual nos dois modos)
+
+```bash
+cd frontend
+npm install     # primeira vez
+npm run dev     # dev server em http://localhost:3000
+```
+
+Abra `http://localhost:3000` e entre com o `ADMIN_LOGIN`/`ADMIN_PASSWORD`
+definidos no `.env`. Para servir uma versão otimizada:
+
+```bash
+npm run build    # gera frontend/dist (tsc + vite build)
+npm run preview  # serve o build localmente
+```
+
+### Primeiro acesso — roteiro sugerido
+
+1. Entre como administrador (criado automaticamente no primeiro startup).
+2. Em **Cadastros**, crie ao menos um aluno, um curso e um tipo de documento —
+   sem eles não há o que solicitar.
+3. Em **Cadastros → Usuários**, crie os demais usuários (`OPERADOR` para quem
+   opera solicitações, `CONSULTA` para somente leitura).
+4. Em **Solicitações → Nova solicitação**, crie a primeira solicitação, anexe
+   documentos na tela de detalhe e movimente o status pelo fluxo.
+5. O **Início** mostra os indicadores; **"Gerar PDF"** na listagem emite o
+   relatório com os filtros aplicados.
 
 ---
 
@@ -564,8 +807,8 @@ Requer um PostgreSQL rodando e acessível via `DB_URL`, além de Java 21.
 A suíte tem dois níveis, separados por fase do Maven:
 
 ```bash
-./mvnw test      # 92 testes unitários (rápidos, sem Docker)
-./mvnw verify    # os 92 + 16 de integração (PostgreSQL real) + análise estática
+./mvnw test      # 104 testes unitários (rápidos, sem Docker)
+./mvnw verify    # os 104 + 16 de integração (PostgreSQL real) + análise estática
 ```
 
 | Nível | Onde | Como |
@@ -575,11 +818,23 @@ A suíte tem dois níveis, separados por fase do Maven:
 | Consulta | `...QueriesTest`, `...RepositoryTest` | `@DataJpaTest` + H2 |
 | Integração | `src/test/.../integracao/*IT` | `@SpringBootTest` + Testcontainers (PostgreSQL 17) |
 
+O relatório PDF também é testado de verdade: o `RelatorioServiceImplTest`
+compila o JRXML real do classpath, preenche com dados e valida a assinatura
+`%PDF-` do arquivo gerado — não é mock do Jasper.
+
+Para o frontend, a checagem de tipos roda junto do build:
+
+```bash
+cd frontend
+npm run build   # tsc -b + vite build — falha em erro de tipo
+npm run lint    # oxlint
+```
+
 ### Testes de integração (Testcontainers)
 
 Sobem um **PostgreSQL 17 real**, na mesma versão da produção. O perfil `it` liga o
 Flyway e mantém `ddl-auto=validate` — cada execução prova que as migrations
-`V1..V6` constroem um schema compatível com as entidades. **Exigem Docker no ar.**
+`V1..V8` constroem um schema compatível com as entidades. **Exigem Docker no ar.**
 
 > **`*IT` roda no `verify`, nunca no `package` — e isso é proposital.** O
 > `Dockerfile` executa `mvnw clean package` dentro de um container **sem acesso ao
@@ -642,6 +897,49 @@ o status geral.
 
 ---
 
+## Limitações conhecidas e decisões técnicas
+
+Consolidação do que foi decidido conscientemente e do que ficou de fora — cada
+item existe para que ninguém redescubra esses pontos da forma difícil.
+
+### Decisões técnicas
+
+| Decisão | Motivo |
+|---|---|
+| Flyway é o único dono do schema (`ddl-auto=validate` em todos os perfis com PostgreSQL) | Schema versionado e reproduzível; o Hibernate só valida. O perfil `it` prova a compatibilidade por teste |
+| Testes `*IT` e SpotBugs rodam no `verify`, nunca no `package` | O `Dockerfile` executa `mvnw clean package` **sem acesso ao daemon Docker** — Testcontainers ali quebraria o build da imagem |
+| JasperReports **6.21.5**, não 7.x | O 7.x rejeita o formato JRXML clássico ("Unable to load report" sem causa útil); a linha 6.21 lê o formato clássico e exporta PDF via OpenPDF, com tudo no Maven Central |
+| `jackson-dataformat-xml` **excluído** da dependência do Jasper | Com esse jar no classpath o Spring MVC registra conversor XML e a API inteira passa a responder XML em `Accept: */*` — as respostas de erro deixariam de ser JSON |
+| Imagem de runtime instala `fontconfig` + `fonts-dejavu-core` | O Jasper mede texto via AWT; sem fontes TTF a geração de PDF falha em imagens JRE enxutas |
+| Anexos em `bytea` no banco (limite 10MB por arquivo) | Volume esperado baixo; simplifica backup e evita filesystem compartilhado entre containers. Crescendo, o caminho é storage de objetos |
+| Conteúdo de anexo fora da listagem (projeção só de metadados) | Listar anexos não deve carregar os bytes de todos os arquivos na memória |
+| Usuário não tem `DELETE`; aluno com solicitações não pode ser excluído | Integridade do histórico e da auditoria — inativação no lugar de remoção |
+| Ordenação por prioridade via `CASE` na Specification | A prioridade é texto no banco; ordenar a coluna daria ordem alfabética (`ALTA` antes de `URGENTE`) |
+| Frontend não re-implementa regras de negócio | A tela esconde/desabilita por conveniência, mas quem valida é sempre o backend (perfil, transição, responsável) — provado por testes que chamam a API por fora da UI |
+| Senha e `version` fora da auditoria; exclusões preservam dados | Hash de senha em `_aud` seria passivo de segurança; `store_data_at_delete` evita linhas de DELETE só com id e nulos |
+| Swagger desabilitado no perfil `prod` | Console interativo é superfície de ataque desnecessária em produção |
+
+### Limitações assumidas
+
+- **Recuperação de senha sem e-mail:** o código de 6 dígitos volta na resposta
+  da API (e aparece na tela) porque não há serviço de e-mail no projeto. Hash,
+  validade de 15 minutos e uso único já são definitivos; só o canal de entrega é
+  simulado — e isso permite enumerar logins existentes, o que a versão com
+  e-mail eliminaria.
+- **`responsavel` do status não é validado contra usuário ativo:** um código
+  órfão (sem usuário correspondente) trava a movimentação para aquele status até
+  ser corrigido via `PUT /api/status/{id}`.
+- **Auditoria não é retroativa** e não tem endpoint HTTP: registros anteriores à
+  `V6` não têm revisões, e a consulta é via SQL/`AuditReader` (expor esse rastro
+  é decisão de produto com implicações próprias de acesso).
+- **Sem CI configurada** — a issue de CI foi excluída do escopo por decisão do
+  projeto; `./mvnw verify` cobre localmente o que o pipeline rodaria.
+- **Uma solicitação por vez:** não há criação em lote nem importação.
+- **H2 nos testes unitários é mais permissivo que o PostgreSQL** — por isso os
+  testes de integração existem; validar no Docker antes de PR continua valendo.
+
+---
+
 ## Roadmap
 
 **Milestone 1 — Infraestrutura**
@@ -682,9 +980,23 @@ o status geral.
 - [x] Testes de integração com PostgreSQL real (Testcontainers + migrations)
 - [x] Refatoração: responsabilidades, N+1 corrigido e medido, análise estática
 
-**Próximos**
-- [ ] CRUD de usuários exposto via API
+**Milestone 7 — Frontend**
+- [x] Inicialização da SPA (React + TypeScript + Vite)
+- [x] Autenticação pela interface (login, sessão, rotas protegidas, logout)
+- [x] Gestão de solicitações (formulário, tabela paginada, filtros, status, histórico)
+- [x] Indicadores do sistema (cards, gráficos, filtro de período)
+- [x] Telas de cadastros (alunos, cursos, tipos, status e usuários)
+
+**Milestone 8 — Extras e entrega**
+- [x] CRUD de usuários via API + anexos de documentos nas solicitações
+- [x] Recuperação de senha, tema claro/escuro, listagem por prioridade
+- [x] Relatórios PDF (JasperReports) com filtros, na API e na interface
+- [x] Documentação completa de instalação e execução (este README)
+
+**Fora do escopo / próximos passos**
+- [ ] CI (excluída do escopo por decisão do projeto)
 - [ ] Validar `responsavel` do status contra usuário ativo (lacuna conhecida)
+- [ ] Envio do código de recuperação de senha por e-mail
 
 ---
 

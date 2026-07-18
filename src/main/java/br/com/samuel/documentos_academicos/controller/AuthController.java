@@ -1,12 +1,16 @@
 package br.com.samuel.documentos_academicos.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.samuel.documentos_academicos.dto.request.EsqueciSenhaRequest;
 import br.com.samuel.documentos_academicos.dto.request.LoginRequest;
+import br.com.samuel.documentos_academicos.dto.request.RedefinirSenhaRequest;
 import br.com.samuel.documentos_academicos.dto.response.ErroResponse;
+import br.com.samuel.documentos_academicos.dto.response.RecuperacaoSenhaResponse;
 import br.com.samuel.documentos_academicos.dto.response.TokenResponse;
 import br.com.samuel.documentos_academicos.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,7 +22,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
-@Tag(name = "Autenticação", description = "Login e emissão de token JWT")
+@Tag(name = "Autenticação", description = "Login, emissão de token JWT e recuperação de senha")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -42,5 +46,26 @@ public class AuthController {
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.autenticar(request);
+    }
+
+    @Operation(
+            summary = "Gera um código de recuperação de senha",
+            description = "Endpoint público. O código vale por 15 minutos e é de uso único. "
+                        + "Sem serviço de e-mail no projeto, o código volta na própria resposta; "
+                        + "em produção seguiria por e-mail e o campo viria nulo.")
+    @SecurityRequirements
+    @PostMapping("/esqueci-senha")
+    public RecuperacaoSenhaResponse esqueciSenha(@Valid @RequestBody EsqueciSenhaRequest request) {
+        return authService.gerarCodigoRecuperacao(request);
+    }
+
+    @Operation(
+            summary = "Redefine a senha usando o código de recuperação",
+            description = "Endpoint público. Código inválido, expirado ou já usado devolve 422.")
+    @SecurityRequirements
+    @PostMapping("/redefinir-senha")
+    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequest request) {
+        authService.redefinirSenha(request);
+        return ResponseEntity.noContent().build();
     }
 }

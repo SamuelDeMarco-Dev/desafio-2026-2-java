@@ -13,6 +13,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import br.com.samuel.documentos_academicos.dto.response.ErroResponse;
@@ -68,6 +69,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErroResponse> handleRotaInexistente(NoResourceFoundException ex, HttpServletRequest req) {
         return build(HttpStatus.NOT_FOUND, "Recurso não encontrado",
                 "Nenhum endpoint corresponde a " + req.getMethod() + " " + req.getRequestURI(), req, List.of());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErroResponse> handleUploadGrande(MaxUploadSizeExceededException ex,
+                                                           HttpServletRequest req) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo muito grande",
+                "O arquivo excede o tamanho máximo permitido de 10MB", req, List.of());
     }
 
     @ExceptionHandler(Exception.class)
