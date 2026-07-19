@@ -5,7 +5,7 @@ import { lerSessao, limparSessao, salvarSessao, sessaoExpirada } from "./tokenSt
 
 export interface UsuarioAutenticado {
   login: string;
-  codigoResponsavel: number;
+  codigoResponsavel: number | null;
   perfis: string[];
 }
 

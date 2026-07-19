@@ -1,6 +1,7 @@
 package br.com.samuel.documentos_academicos.service.impl;
 
 import java.util.HashSet;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,8 +13,10 @@ import br.com.samuel.documentos_academicos.dto.request.UsuarioAtualizacaoRequest
 import br.com.samuel.documentos_academicos.dto.request.UsuarioRequest;
 import br.com.samuel.documentos_academicos.dto.response.UsuarioResponse;
 import br.com.samuel.documentos_academicos.entity.Usuario;
+import br.com.samuel.documentos_academicos.enums.Perfil;
 import br.com.samuel.documentos_academicos.exception.RecursoDuplicadoException;
 import br.com.samuel.documentos_academicos.exception.RecursoNaoEncontradoException;
+import br.com.samuel.documentos_academicos.exception.RegraNegocioException;
 import br.com.samuel.documentos_academicos.mapper.UsuarioMapper;
 import br.com.samuel.documentos_academicos.repository.UsuarioRepository;
 import br.com.samuel.documentos_academicos.service.UsuarioService;
@@ -47,6 +50,7 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new RecursoDuplicadoException(
                     "Já existe um usuário com o código de responsável " + request.codigoResponsavel());
         }
+        exigirCodigoParaQuemMovimenta(request.perfis(), request.codigoResponsavel());
 
         Usuario usuario = new Usuario();
         usuario.setNome(request.nome());
@@ -80,10 +84,26 @@ public class UsuarioServiceImpl implements UsuarioService {
             throw new RecursoDuplicadoException(
                     "Já existe um usuário com o código de responsável " + request.codigoResponsavel());
         }
+        exigirCodigoParaQuemMovimenta(request.perfis(), request.codigoResponsavel());
         usuario.setNome(request.nome());
         usuario.setCodigoResponsavel(request.codigoResponsavel());
         usuario.setPerfis(new HashSet<>(request.perfis()));
         return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+    }
+
+    /**
+     * Quem tem perfil ADMIN ou OPERADOR movimenta solicitações, e a movimentação
+     * exige um código de responsável (que fica registrado no histórico). Sem ele,
+     * o usuário só descobriria o problema — com um erro genérico — na hora de
+     * movimentar. Barramos já no cadastro, com uma mensagem clara.
+     */
+    private void exigirCodigoParaQuemMovimenta(Set<Perfil> perfis, Integer codigoResponsavel) {
+        boolean movimentaSolicitacoes = perfis.contains(Perfil.ADMIN) || perfis.contains(Perfil.OPERADOR);
+        if (movimentaSolicitacoes && codigoResponsavel == null) {
+            throw new RegraNegocioException(
+                    "Usuários com perfil ADMIN ou OPERADOR precisam de um código de responsável, "
+                    + "pois ele identifica quem movimenta as solicitações.");
+        }
     }
 
     @Override
