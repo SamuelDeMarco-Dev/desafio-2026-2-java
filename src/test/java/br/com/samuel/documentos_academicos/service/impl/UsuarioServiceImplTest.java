@@ -1,6 +1,7 @@
 package br.com.samuel.documentos_academicos.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +24,7 @@ import br.com.samuel.documentos_academicos.dto.response.UsuarioResponse;
 import br.com.samuel.documentos_academicos.entity.Usuario;
 import br.com.samuel.documentos_academicos.enums.Perfil;
 import br.com.samuel.documentos_academicos.exception.RecursoDuplicadoException;
+import br.com.samuel.documentos_academicos.exception.RegraNegocioException;
 import br.com.samuel.documentos_academicos.mapper.UsuarioMapper;
 import br.com.samuel.documentos_academicos.repository.UsuarioRepository;
 import br.com.samuel.documentos_academicos.service.UsuarioService;
@@ -94,5 +96,18 @@ class UsuarioServiceImplTest {
     void codigoResponsavelDuplicadoRetornaConflito() {
         when(usuarioRepository.existsByCodigoResponsavel(1001)).thenReturn(true);
         assertThrows(RecursoDuplicadoException.class, () -> service.criar(request()));
+    }
+    @Test
+    void adminOuOperadorSemCodigoDeResponsavelERecusado() {
+        UsuarioRequest semCodigo = new UsuarioRequest("Operador", "operador", SENHA_PURA, null, Set.of(Perfil.OPERADOR));
+        assertThrows(RegraNegocioException.class, () -> service.criar(semCodigo));
+    }
+
+    @Test
+    void consultaPodeSerCriadoSemCodigoDeResponsavel() {
+        stubSalvar();
+        UsuarioRequest consulta = new UsuarioRequest("Consulta", "consulta", SENHA_PURA, null, Set.of(Perfil.CONSULTA));
+        service.criar(consulta);
+        assertNull(capturarSalvo().getCodigoResponsavel(), "CONSULTA nao movimenta, entao nao exige codigo");
     }
 }

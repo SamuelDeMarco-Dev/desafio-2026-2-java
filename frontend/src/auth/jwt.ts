@@ -6,7 +6,7 @@
 export interface ClaimsToken {
   sub: string; // login
   userId: number;
-  responsavel: number; // codigoResponsavel
+  responsavel: number | null; // codigoResponsavel (nulo se nao tiver)
   roles: string[];
   iat: number;
   exp: number;

@@ -57,7 +57,7 @@ export function SolicitacaoDetalhePage() {
 
   async function aoMovimentar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!usuario || !statusDestinoId) {
+    if (!usuario || usuario.codigoResponsavel == null || !statusDestinoId) {
       return;
     }
 
@@ -130,6 +130,11 @@ export function SolicitacaoDetalhePage() {
 
       {solicitacao.status.finalizaSolicitacao ? (
         <p>Esta solicitação está finalizada e não pode mais ser movimentada.</p>
+      ) : gerencia && usuario?.codigoResponsavel == null ? (
+        <p role="alert" className="erro-banner">
+          Seu usuário não possui código de responsável, necessário para movimentar solicitações.
+          Peça a um administrador para definir um em Cadastros → Usuários.
+        </p>
       ) : gerencia ? (
         <form onSubmit={aoMovimentar} className="formulario-status">
           <label htmlFor="statusDestino">Mover para</label>

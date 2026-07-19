@@ -65,11 +65,7 @@ export function MainLayout() {
     <div className="app-shell">
       <aside className={menuAberto ? "sidebar sidebar-aberta" : "sidebar"}>
         <div className="sidebar-marca">
-          <span className="sidebar-marca-icone" aria-hidden="true" />
-          <span>
-            <strong>Central de Documentos</strong>
-            <small>Gerenciamento de solicitações</small>
-          </span>
+          <strong>Central de Documentos</strong>
         </div>
 
         <nav className="sidebar-nav">
