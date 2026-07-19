@@ -10,6 +10,20 @@ import {
 } from "../../services/dashboardApi";
 import { FiltroPeriodo } from "./FiltroPeriodo";
 
+/**
+ * Mostra o tempo médio de emissão na unidade mais legível: dias quando >= 1 dia,
+ * senão horas, senão minutos. Sem isso, uma emissão feita no mesmo dia (fração de
+ * dia) aparecia como "0.0 dias".
+ */
+function formatarTempoMedio(dias: number): string {
+  if (dias >= 1) return `${dias.toFixed(1)} dias`;
+  const horas = dias * 24;
+  if (horas >= 1) return `${horas.toFixed(1)} h`;
+  const minutos = horas * 60;
+  if (minutos >= 1) return `${Math.round(minutos)} min`;
+  return "menos de 1 min";
+}
+
 export function DashboardPage() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>({});
   const [resumo, setResumo] = useState<DashboardResumo | null>(null);
@@ -58,7 +72,7 @@ export function DashboardPage() {
             <div className="card">
               <span className="card-valor">
                 {resumo.tempoMedioEmissao.totalEmitidas > 0
-                  ? `${resumo.tempoMedioEmissao.diasMedios.toFixed(1)} dias`
+                  ? formatarTempoMedio(resumo.tempoMedioEmissao.diasMedios)
                   : "—"}
               </span>
               <span className="card-rotulo">Tempo médio de emissão</span>

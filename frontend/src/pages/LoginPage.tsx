@@ -102,7 +102,14 @@ export function LoginPage() {
 
       <div className="login-card">
         <div className="login-marca">
-          <span className="login-marca-icone" aria-hidden="true" />
+          <svg className="login-marca-icone" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="7" fill="#1a3c6e" />
+            <path fill="#ffffff" d="M11 6h7l5 5v13a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" />
+            <path fill="#c3d2e8" d="M18 6l5 5h-4a1 1 0 0 1-1-1V6z" />
+            <rect x="12" y="15" width="8" height="1.7" rx="0.85" fill="#3fa66a" />
+            <rect x="12" y="18.5" width="8" height="1.7" rx="0.85" fill="#3fa66a" />
+            <rect x="12" y="22" width="5" height="1.7" rx="0.85" fill="#3fa66a" />
+          </svg>
           <span className="login-marca-texto">Central de Documentos</span>
         </div>
         <h1 className="login-subtitulo">Gerenciamento de solicitações de documentos</h1>
